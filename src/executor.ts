@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { GLOBAL_SETTINGS_PATH, readSettingsFile } from "./config";
 import type { Hook, HookExecutionContext } from "./types";
 
 // ============================================================================
@@ -98,6 +100,49 @@ export async function executeHook(
   return executeCommandHook(hook.command, inputJson, cwd, timeoutMs);
 }
 
+type ShellSpec = { shell: string; flag: "-c" | "/c" };
+
+let cachedShell: ShellSpec | undefined;
+
+/**
+ * The shell hook commands run under — resolved once per process.
+ *
+ * Bare "bash" is not safe on Windows: it resolves through PATH to the WSL
+ * launcher (System32\bash.exe), which cannot see Node.js or Windows paths, so
+ * every hook died with exit 127 (issue #3) — and on a host with no bash at all
+ * the spawn itself fails. Resolution order, mirroring Pi's own getShellConfig:
+ *   1. `shellPath` in ~/.pi/agent/settings.json — the user's explicit choice
+ *   2. known Git Bash / MSYS2 install locations
+ *   3. COMSPEC (cmd.exe) — always present; runs the plain commands most hooks
+ *      use (`node hook.cjs …`) instead of dying before the hook even starts.
+ *      PATH "bash" is deliberately NOT tried on Windows: it is the WSL
+ *      launcher in practice, and a user with bash elsewhere can set shellPath.
+ * POSIX keeps "bash -c" exactly as before.
+ */
+function resolveShell(): ShellSpec {
+  if (cachedShell) return cachedShell;
+  const configured = readSettingsFile(GLOBAL_SETTINGS_PATH)?.shellPath;
+  if (configured && existsSync(configured)) {
+    return (cachedShell = { shell: configured, flag: "-c" });
+  }
+  if (process.platform === "win32") {
+    const gitBash = [
+      process.env.ProgramFiles,
+      process.env["ProgramFiles(x86)"],
+    ]
+      .filter((root): root is string => !!root)
+      .map((root) => `${root}/Git/bin/bash.exe`)
+      .concat("C:/msys64/usr/bin/bash.exe")
+      .find((p) => existsSync(p));
+    if (gitBash) return (cachedShell = { shell: gitBash, flag: "-c" });
+    return (cachedShell = {
+      shell: process.env.ComSpec || "cmd.exe",
+      flag: "/c",
+    });
+  }
+  return (cachedShell = { shell: "bash", flag: "-c" });
+}
+
 function executeCommandHook(
   command: string,
   inputJson: string,
@@ -105,7 +150,8 @@ function executeCommandHook(
   timeoutMs: number,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve) => {
-    const child = spawn("bash", ["-c", command], {
+    const { shell, flag } = resolveShell();
+    const child = spawn(shell, [flag, command], {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
     });
