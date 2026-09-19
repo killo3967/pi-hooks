@@ -2,6 +2,15 @@
 
 English | [简体中文](./README.zh-CN.md)
 
+> **Fork notice (2026-09-19).** This fork is what a Windows setup actually runs while upstream is
+> inactive: upstream `main` has had no code changes since **2026-05-08**, and `@hsingjui/pi-hooks` on
+> npm (0.0.2) predates the fix for [#3](https://github.com/hsingjui/pi-hooks/issues/3).
+>
+> `main` here = upstream `main` + [PR #6](https://github.com/hsingjui/pi-hooks/pull/6) —
+> platform-aware shell resolution: settings `shellPath` → known Git Bash/MSYS2 paths →
+> `COMSPEC`/`cmd.exe`. **It supersedes [PR #4](https://github.com/hsingjui/pi-hooks/pull/4)**: the two
+> change the same lines of `src/executor.ts` and are not meant to be merged together.
+
 Claude Code-compatible command hooks for the Pi coding agent.
 
 This package adapts Claude Code's hook configuration format to Pi's extension event system so existing command hook workflows can be reused with minimal changes.
