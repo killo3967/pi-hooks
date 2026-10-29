@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import { buildHookInput, executeHook } from "../src/executor.ts";
+import {
+  buildHookInput,
+  configureShell,
+  executeHook,
+  resolveShell,
+} from "../src/executor.ts";
 import type { HookExecutionContext } from "../src/types.ts";
 import { createHookScript, createRawScript } from "./support/hook-script.ts";
 
@@ -337,4 +342,16 @@ for (let i = 0; i < 40; i++) process.stderr.write(chunk);`);
   } finally {
     script.cleanup();
   }
+});
+
+test("configureShell decides the shell the next hooks run under", () => {
+  // The session settings are the only reader of shellPath; the executor just
+  // consumes the decision instead of reading settings a second time.
+  try {
+    configureShell(process.execPath);
+    assert.equal(resolveShell().shell, process.execPath);
+  } finally {
+    configureShell(undefined);
+  }
+  assert.notEqual(resolveShell().shell, process.execPath);
 });

@@ -1,6 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
-import { GLOBAL_SETTINGS_PATH, readSettingsFile } from "./config.ts";
 import type { Hook, HookExecutionContext } from "./types.ts";
 
 // ============================================================================
@@ -106,15 +105,28 @@ const MAX_CAPTURED_CHARS = 1_000_000;
 type ShellSpec = { shell: string; flag: "-c" | "/c" };
 
 let cachedShell: ShellSpec | undefined;
+let configuredShellPath: string | undefined;
 
 /**
- * The shell hook commands run under — resolved once per process.
+ * Sets the `shellPath` for this session. `loadSettings` is the only reader of
+ * the settings files, and this is how the executor consumes its decision: no
+ * second read, one rule, and the project value already passed the trust gate.
+ * Passing `undefined` drops the override and falls back to discovery, so a new
+ * session cannot inherit the previous one's shell.
+ */
+export function configureShell(shellPath: string | undefined): void {
+  configuredShellPath = shellPath;
+  cachedShell = undefined;
+}
+
+/**
+ * The shell hook commands run under — resolved once per configured shell.
  *
  * Bare "bash" is not safe on Windows: it resolves through PATH to the WSL
  * launcher (System32\bash.exe), which cannot see Node.js or Windows paths, so
  * every hook died with exit 127 (issue #3) — and on a host with no bash at all
- * the spawn itself fails. Resolution order, mirroring Pi's own getShellConfig:
- *   1. `shellPath` in ~/.pi/agent/settings.json — the user's explicit choice
+ * the spawn itself fails. Resolution order:
+ *   1. `shellPath` from the session settings (global, or a trusted project)
  *   2. known Git Bash / MSYS2 install locations
  *   3. COMSPEC (cmd.exe) — always present; runs the plain commands most hooks
  *      use (`node hook.cjs …`) instead of dying before the hook even starts.
@@ -122,11 +134,10 @@ let cachedShell: ShellSpec | undefined;
  *      launcher in practice, and a user with bash elsewhere can set shellPath.
  * POSIX keeps "bash -c" exactly as before.
  */
-function resolveShell(): ShellSpec {
+export function resolveShell(): ShellSpec {
   if (cachedShell) return cachedShell;
-  const configured = readSettingsFile(GLOBAL_SETTINGS_PATH)?.shellPath;
-  if (configured && existsSync(configured)) {
-    return (cachedShell = { shell: configured, flag: "-c" });
+  if (configuredShellPath && existsSync(configuredShellPath)) {
+    return (cachedShell = { shell: configuredShellPath, flag: "-c" });
   }
   if (process.platform === "win32") {
     const gitBash = [

@@ -293,3 +293,39 @@ test("getHookGroups drops groups whose matcher is not a string", () => {
 
   assert.deepEqual(getHookGroups(settings, "Stop"), []);
 });
+
+test("loadSettings exposes shellPath from the global settings", () => {
+  const { dir, cleanup } = tempDir();
+  try {
+    const globalSettings = path.join(dir, "global.json");
+    writeFileSync(globalSettings, JSON.stringify({ shellPath: "/opt/custom/sh" }), "utf8");
+
+    const loaded = loadSettings(dir, { globalSettingsPath: globalSettings });
+
+    assert.equal(loaded.settings?.shellPath, "/opt/custom/sh");
+  } finally {
+    cleanup();
+  }
+});
+
+test("a project shellPath is honoured only when the project is trusted", () => {
+  const { dir, cleanup } = tempDir();
+  try {
+    const projectPi = path.join(dir, ".pi");
+    mkdirSync(projectPi, { recursive: true });
+    writeFileSync(
+      path.join(projectPi, "settings.json"),
+      JSON.stringify({ shellPath: "/tmp/project-shell" }),
+      "utf8",
+    );
+    const absentGlobal = path.join(dir, "no-global.json");
+
+    const untrusted = loadSettings(dir, { projectTrusted: false, globalSettingsPath: absentGlobal });
+    assert.equal(untrusted.settings?.shellPath, undefined);
+
+    const trusted = loadSettings(dir, { projectTrusted: true, globalSettingsPath: absentGlobal });
+    assert.equal(trusted.settings?.shellPath, "/tmp/project-shell");
+  } finally {
+    cleanup();
+  }
+});

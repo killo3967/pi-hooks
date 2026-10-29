@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadSettings } from "./config.ts";
+import { configureShell } from "./executor.ts";
 import { describeInjectedContext, extractResponseFromContent } from "./helpers.ts";
 import { triggerSessionHooks } from "./hooks/session-hooks.ts";
 import type { HookMatcherValue, SettingsFile } from "./types.ts";
@@ -72,6 +73,9 @@ export function createHookContext(pi: ExtensionAPI): HookModuleContext {
     initSettings: (cwd, projectTrusted) => {
       const { settings } = loadSettings(cwd, { projectTrusted });
       shared.currentSettings = settings;
+      // One reader for shellPath: the session settings decide, and the executor
+      // consumes that decision instead of reading the files again.
+      configureShell(settings?.shellPath);
       // A new session must not inherit context queued for the previous one.
       shared.pendingUserPromptContexts = [];
       return settings;

@@ -123,13 +123,19 @@ export function loadSettings(
   ].filter((p) => existsSync(p));
 
   const hooks = mergeHooks(globalSettings?.hooks, projectSettings?.hooks);
+  // A trusted project's shellPath wins; projectSettings is only read when the
+  // project is trusted, so an untrusted folder cannot choose the shell.
+  const shellPath = projectSettings?.shellPath ?? globalSettings?.shellPath;
 
-  if (!hooks) {
+  if (!hooks && shellPath === undefined) {
     return { settings: undefined, sourcePaths };
   }
 
   return {
-    settings: { hooks },
+    settings: {
+      ...(hooks ? { hooks } : {}),
+      ...(shellPath !== undefined ? { shellPath } : {}),
+    },
     sourcePaths,
   };
 }
