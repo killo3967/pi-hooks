@@ -191,10 +191,23 @@ export function extractToolResultPatch(
   };
 }
 
+/**
+ * Anything that can run a hook and return its streams and exit code. The default
+ * is the real executor; tests inject a fake so decision logic can be exercised
+ * without spawning a shell.
+ */
+export type HookRunner = (
+  hook: Hook,
+  input: object,
+  cwd: string,
+  timeoutMs: number,
+) => Promise<{ stdout: string; stderr: string; exitCode: number }>;
+
 export async function executeParsedHook(
   hook: Hook,
   context: HookExecutionContext,
   eventName: HookEventName,
+  runner: HookRunner = executeHook,
 ): Promise<{
   hookResult: { stdout: string; stderr: string; exitCode: number };
   plainStdout: string;
@@ -203,7 +216,7 @@ export async function executeParsedHook(
 }> {
   const input = buildHookInput(context);
   const timeout = hook.timeout ? hook.timeout * 1000 : 60000;
-  const hookResult = await executeHook(hook, input, context.cwd, timeout);
+  const hookResult = await runner(hook, input, context.cwd, timeout);
   const jsonOutput = hookResult.stdout
     ? parseJsonOutput(hookResult.stdout)
     : undefined;
@@ -249,6 +262,8 @@ export async function runHookGroups(options: {
   notify?: NotifyFn;
   /** SessionEnd has no user matcher: Pi always reports `other`. */
   defaultMatcher?: string;
+  /** Fake runner for tests; defaults to the real executor. */
+  runner?: HookRunner;
   onOutcome: (outcome: HookOutcome) => HookOutcomeAction | Promise<HookOutcomeAction>;
 }): Promise<void> {
   const groups = getHookGroups(options.settings, options.eventName);
@@ -269,7 +284,7 @@ export async function runHookGroups(options: {
       let outcome: HookOutcome;
       try {
         const { hookResult, plainStdout, jsonOutput, commonOutput } =
-          await executeParsedHook(hook, options.context, options.eventName);
+          await executeParsedHook(hook, options.context, options.eventName, options.runner);
         outcome = { hookResult, plainStdout, jsonOutput, commonOutput };
       } catch (err) {
         // Only the execution is guarded: a bug in the outcome handling is ours
@@ -289,6 +304,7 @@ export async function triggerSimpleHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
+  runner?: HookRunner,
 ): Promise<HookRunResult> {
   const aggregatedResult: HookRunResult = {};
 
@@ -298,6 +314,7 @@ export async function triggerSimpleHooks(
     context,
     settings,
     notify,
+    runner,
     defaultMatcher: eventName === "SessionEnd" ? "other" : undefined,
     onOutcome: ({ hookResult, plainStdout, jsonOutput, commonOutput }) => {
       const additionalContext = jsonOutput

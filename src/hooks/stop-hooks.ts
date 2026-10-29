@@ -7,7 +7,12 @@ import type {
   SettingsFile,
   StopResult,
 } from "../types.ts";
-import { appendAdditionalContext, getStringField, runHookGroups } from "./shared.ts";
+import {
+  appendAdditionalContext,
+  getStringField,
+  runHookGroups,
+  type HookRunner,
+} from "./shared.ts";
 
 function findLastAssistantMessageText(messages: unknown[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -28,6 +33,7 @@ export async function triggerStopHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
+  runner?: HookRunner,
 ): Promise<StopResult> {
   const result: StopResult = { blocked: false };
 
@@ -36,6 +42,7 @@ export async function triggerStopHooks(
     context,
     settings,
     notify,
+    runner,
     onOutcome: ({ hookResult, plainStdout, jsonOutput, commonOutput }) => {
       if (hookResult.exitCode === 0 && jsonOutput) {
         const additionalContext = getStringField(

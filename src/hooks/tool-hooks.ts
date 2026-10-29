@@ -17,6 +17,7 @@ import {
   extractToolResultPatch,
   getStringField,
   runHookGroups,
+  type HookRunner,
 } from "./shared.ts";
 
 export async function triggerPreToolUseHooks(
@@ -24,6 +25,7 @@ export async function triggerPreToolUseHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
+  runner?: HookRunner,
 ): Promise<PreToolUseResult> {
   const result: PreToolUseResult = { blocked: false };
 
@@ -33,6 +35,7 @@ export async function triggerPreToolUseHooks(
     context,
     settings,
     notify,
+    runner,
     onOutcome: ({ hookResult, plainStdout, jsonOutput, commonOutput }) => {
       if (hookResult.exitCode === 2) {
         result.blocked = true;
@@ -103,6 +106,7 @@ async function triggerPostToolHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
+  runner?: HookRunner,
 ): Promise<PostToolUseResult> {
   const result: PostToolUseResult = {};
 
@@ -112,6 +116,7 @@ async function triggerPostToolHooks(
     context,
     settings,
     notify,
+    runner,
     onOutcome: ({ hookResult, plainStdout, jsonOutput, commonOutput }) => {
       if (hookResult.exitCode === 2) {
         notify?.(`${eventName} feedback (exit 2): ${hookResult.stderr}`, "warning");
@@ -162,8 +167,9 @@ export function triggerPostToolUseHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
+  runner?: HookRunner,
 ): Promise<PostToolUseResult> {
-  return triggerPostToolHooks("PostToolUse", toolName, context, settings, notify);
+  return triggerPostToolHooks("PostToolUse", toolName, context, settings, notify, runner);
 }
 
 export function triggerPostToolUseFailureHooks(
@@ -171,8 +177,9 @@ export function triggerPostToolUseFailureHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
+  runner?: HookRunner,
 ): Promise<PostToolUseResult> {
-  return triggerPostToolHooks("PostToolUseFailure", toolName, context, settings, notify);
+  return triggerPostToolHooks("PostToolUseFailure", toolName, context, settings, notify, runner);
 }
 
 /**

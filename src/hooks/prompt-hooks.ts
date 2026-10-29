@@ -8,11 +8,13 @@ import type {
   UserPromptSubmitResult,
 } from "../types.ts";
 import { appendAdditionalContext, getStringField, runHookGroups } from "./shared.ts";
+import type { HookRunner } from "./shared.ts";
 
 export async function triggerUserPromptSubmitHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
+  runner?: HookRunner,
 ): Promise<UserPromptSubmitResult> {
   const result: UserPromptSubmitResult = { blocked: false };
 
@@ -21,6 +23,7 @@ export async function triggerUserPromptSubmitHooks(
     context,
     settings,
     notify,
+    runner,
     onOutcome: ({ hookResult, plainStdout, jsonOutput, commonOutput }) => {
       if (hookResult.exitCode === 0 && jsonOutput) {
         const additionalContext = getStringField(
