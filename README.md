@@ -74,6 +74,11 @@ pi install git:github.com/killo3967/pi-hooks
 - `SessionStart.compact` → `session_compact`
 - `SessionEnd.other` → `session_shutdown`
 - `Stop` → `agent_end` (best-effort emulation of Claude Code's “after response completes” behavior)
+- `PreCompact.manual` / `PreCompact.auto` → `session_before_compact`
+- `PostCompact.manual` / `PostCompact.auto` → `session_compact`
+
+For the compaction events, `auto` covers Pi's own `threshold` (context pressure) and `overflow` (the
+request did not fit) reasons, so a hook with `"matcher": "auto"` fires on both.
 
 ## Configuration Format
 

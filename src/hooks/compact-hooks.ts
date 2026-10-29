@@ -8,6 +8,29 @@ import type {
 } from "../types.ts";
 import { triggerSimpleHooks } from "./shared.ts";
 
+type CompactReason = "manual" | "threshold" | "overflow";
+
+/**
+ * `reason` was added to the compaction events after 0.74.0, which is the
+ * version this package's peer types resolve to. Read it defensively so the
+ * extension works on both: no reason means the historical manual behaviour.
+ */
+function readCompactReason(event: unknown): CompactReason | undefined {
+  const reason = (event as { reason?: unknown }).reason;
+  return reason === "manual" || reason === "threshold" || reason === "overflow"
+    ? reason
+    : undefined;
+}
+
+/**
+ * Pi reports three compaction reasons; the Claude Code hook contract only knows
+ * `manual` and `auto`. `threshold` (context pressure) and `overflow` (the
+ * request did not fit) are both automatic, so they collapse to `auto`.
+ */
+export function toCompactTrigger(reason: CompactReason | undefined): "manual" | "auto" {
+  return reason === "threshold" || reason === "overflow" ? "auto" : "manual";
+}
+
 async function triggerCompactHooks(
   eventName: "PreCompact" | "PostCompact",
   context: HookExecutionContext,
@@ -19,14 +42,13 @@ async function triggerCompactHooks(
 
 export function registerCompactHooks(pi: ExtensionAPI, shared: HookModuleContext) {
   pi.on("session_before_compact", async (event, ctx) => {
-    const trigger: "manual" | "auto" = "manual";
     await triggerCompactHooks(
       "PreCompact",
       {
         sessionId: shared.getSessionId(ctx),
         cwd: ctx.cwd,
         hookEventName: "PreCompact",
-        trigger,
+        trigger: toCompactTrigger(readCompactReason(event)),
         customInstructions: event.customInstructions ?? "",
         transcriptPath: ctx.sessionManager.getSessionFile(),
       },
@@ -36,15 +58,13 @@ export function registerCompactHooks(pi: ExtensionAPI, shared: HookModuleContext
   });
 
   pi.on("session_compact", async (event, ctx) => {
-    const trigger: "manual" | "auto" = "manual";
-
     await triggerCompactHooks(
       "PostCompact",
       {
         sessionId: shared.getSessionId(ctx),
         cwd: ctx.cwd,
         hookEventName: "PostCompact",
-        trigger,
+        trigger: toCompactTrigger(readCompactReason(event)),
         compactSummary: event.compactionEntry.summary,
         transcriptPath: ctx.sessionManager.getSessionFile(),
       },
