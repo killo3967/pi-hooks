@@ -1,4 +1,8 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type {
+  ExtensionAPI,
+  ExtensionContext,
+  ToolResultEventResult,
+} from "@earendil-works/pi-coding-agent";
 import { extractErrorFromContent } from "../helpers.ts";
 import type { HookModuleContext } from "../hook-context.ts";
 import type {
@@ -171,6 +175,25 @@ export function triggerPostToolUseFailureHooks(
   return triggerPostToolHooks("PostToolUseFailure", toolName, context, settings, notify);
 }
 
+/**
+ * Turns a hook patch into the result shape Pi expects. A hook can return any
+ * JSON, but the contract for content is an array of text/image parts, so
+ * anything else falls back to the original content instead of being forwarded:
+ * the previous cast hid that mismatch from the compiler.
+ */
+function toToolResultPatch(
+  result: PostToolUseResult,
+  event: { content: unknown; details?: unknown; isError: boolean },
+): ToolResultEventResult {
+  return {
+    content: Array.isArray(result.content)
+      ? (result.content as ToolResultEventResult["content"])
+      : (event.content as ToolResultEventResult["content"]),
+    details: result.details ?? event.details,
+    isError: result.isError ?? event.isError,
+  };
+}
+
 export function registerToolHooks(pi: ExtensionAPI, shared: HookModuleContext) {
   pi.on("tool_call", async (event, ctx) => {
     const result = await triggerPreToolUseHooks(
@@ -211,7 +234,7 @@ export function registerToolHooks(pi: ExtensionAPI, shared: HookModuleContext) {
     }
   });
 
-  pi.on("tool_result", async (event, ctx): Promise<any> => {
+  pi.on("tool_result", async (event, ctx) => {
     if (event.isError) {
       const result = await triggerPostToolUseFailureHooks(
         event.toolName,
@@ -247,11 +270,7 @@ export function registerToolHooks(pi: ExtensionAPI, shared: HookModuleContext) {
         result.details !== undefined ||
         result.isError !== undefined
       ) {
-        return {
-          content: result.content ?? event.content,
-          details: result.details ?? event.details,
-          isError: result.isError ?? event.isError,
-        } as any;
+        return toToolResultPatch(result, event);
       }
 
       return;
@@ -290,11 +309,7 @@ export function registerToolHooks(pi: ExtensionAPI, shared: HookModuleContext) {
       result.details !== undefined ||
       result.isError !== undefined
     ) {
-      return {
-        content: result.content ?? event.content,
-        details: result.details ?? event.details,
-        isError: result.isError ?? event.isError,
-      } as any;
+      return toToolResultPatch(result, event);
     }
   });
 }

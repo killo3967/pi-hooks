@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  registerToolHooks,
   triggerPostToolUseFailureHooks,
   triggerPostToolUseHooks,
   triggerPreToolUseHooks,
@@ -366,6 +367,88 @@ test("PreToolUse ignores permissionDecision ask", async () => {
 
     assert.equal(result.blocked, false);
     assert.equal(result.reason, undefined);
+  } finally {
+    script.cleanup();
+  }
+});
+
+function fakePi(): {
+  pi: never;
+  handlers: Map<string, (event: any, ctx: any) => Promise<any>>;
+} {
+  const handlers = new Map<string, (event: any, ctx: any) => Promise<any>>();
+  const pi = {
+    on: (name: string, handler: (event: any, ctx: any) => Promise<any>) => {
+      handlers.set(name, handler);
+      return () => {};
+    },
+  };
+  return { pi: pi as never, handlers };
+}
+
+function adapterCtx() {
+  return {
+    cwd: process.cwd(),
+    sessionManager: { getSessionFile: () => "session.jsonl" },
+    ui: { notify: () => {} },
+    abort: () => {},
+  };
+}
+
+test("the tool_result adapter returns the patched result Pi expects", async () => {
+  // The adapter is the layer that decides what Pi receives back; it used to be
+  // typed as any, so a divergence from Pi's contract was invisible to tsc.
+  const script = createHookScript(`
+  out({ hookSpecificOutput: { hookEventName: "PostToolUse", updatedToolResult: { content: [{ type: "text", text: "patched" }], isError: false } } });`);
+  try {
+    const { pi, handlers } = fakePi();
+    registerToolHooks(pi, {
+      currentSettings: settingsWith("PostToolUse", { type: "command", command: script.command }),
+      getSessionId: () => "session.jsonl",
+      notify: () => {},
+      injectHiddenContext: () => {},
+      buildToolResponse: () => ({}),
+    } as never);
+
+    const returned = await handlers.get("tool_result")?.(
+      {
+        toolName: "bash",
+        input: {},
+        toolCallId: "call-1",
+        isError: false,
+        content: [{ type: "text", text: "original" }],
+      },
+      adapterCtx(),
+    );
+
+    assert.deepEqual(returned?.content, [{ type: "text", text: "patched" }]);
+    assert.equal(returned?.isError, false);
+  } finally {
+    script.cleanup();
+  }
+});
+
+test("hook content that is not an array is ignored, keeping the original", async () => {
+  const script = createHookScript(`
+  out({ hookSpecificOutput: { hookEventName: "PostToolUse", updatedToolResult: { content: "not-an-array", isError: true } } });`);
+  try {
+    const { pi, handlers } = fakePi();
+    registerToolHooks(pi, {
+      currentSettings: settingsWith("PostToolUse", { type: "command", command: script.command }),
+      getSessionId: () => "session.jsonl",
+      notify: () => {},
+      injectHiddenContext: () => {},
+      buildToolResponse: () => ({}),
+    } as never);
+
+    const original = [{ type: "text", text: "original" }];
+    const returned = await handlers.get("tool_result")?.(
+      { toolName: "bash", input: {}, toolCallId: "call-2", isError: false, content: original },
+      adapterCtx(),
+    );
+
+    assert.deepEqual(returned?.content, original);
+    assert.equal(returned?.isError, true);
   } finally {
     script.cleanup();
   }

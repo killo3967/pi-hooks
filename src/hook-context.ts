@@ -1,4 +1,4 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { loadSettings } from "./config.ts";
 import { configureShell } from "./executor.ts";
 import { describeInjectedContext, extractResponseFromContent } from "./helpers.ts";
@@ -14,8 +14,8 @@ export type HookModuleContext = {
   /** Contexts waiting to be attached to the next runs, in arrival order. */
   pendingUserPromptContexts: string[];
   stopHookActive: boolean;
-  getSessionId: (ctx: any) => string;
-  notify: (ctx: any, msg: string, type: NotifyType) => void;
+  getSessionId: (ctx: ExtensionContext) => string;
+  notify: (ctx: ExtensionContext, msg: string, type: NotifyType) => void;
   injectHiddenContext: (
     content: string,
     details: Record<string, unknown>,
@@ -28,7 +28,7 @@ export type HookModuleContext = {
   }) => Record<string, unknown>;
   triggerSessionStartHook: (
     matcher: HookMatcherValue<"SessionStart">,
-    ctx: any,
+    ctx: ExtensionContext,
   ) => Promise<void>;
 };
 
@@ -39,9 +39,9 @@ export function createHookContext(pi: ExtensionAPI): HookModuleContext {
     firedSessionStartKeys: new Set<string>(),
     pendingUserPromptContexts: [],
     stopHookActive: false,
-    getSessionId: (ctx: any) =>
+    getSessionId: (ctx: ExtensionContext) =>
       ctx.sessionManager.getSessionFile() ?? "ephemeral",
-    notify: (ctx: any, msg: string, type: NotifyType) =>
+    notify: (ctx: ExtensionContext, msg: string, type: NotifyType) =>
       ctx.ui.notify(msg, type),
     // Known limitation: this uses the `pi` captured when the extension loaded.
     // Pi invalidates a captured `pi` after a session replacement (newSession,

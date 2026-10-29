@@ -2,17 +2,17 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createHookContext } from "../src/hook-context.ts";
 import type { HookMatcherValue } from "../src/types.ts";
 import { createHookScript, type HookScript } from "./support/hook-script.ts";
 import { settingsWith } from "./support/settings.ts";
 
-const ctx = {
+const ctx = ({
   cwd: process.cwd(),
   sessionManager: { getSessionFile: () => "session.jsonl" },
   ui: { notify: () => {} },
-};
+} as unknown) as ExtensionContext;
 
 function fakePi(): ExtensionAPI {
   return { sendMessage: () => {} } as unknown as ExtensionAPI;
