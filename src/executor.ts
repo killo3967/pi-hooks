@@ -100,6 +100,9 @@ export async function executeHook(
   return executeCommandHook(hook.command, inputJson, cwd, timeoutMs);
 }
 
+/** Upper bound for the stdout/stderr captured from a single hook. */
+const MAX_CAPTURED_CHARS = 1_000_000;
+
 type ShellSpec = { shell: string; flag: "-c" | "/c" };
 
 let cachedShell: ShellSpec | undefined;
@@ -192,20 +195,46 @@ function executeCommandHook(
 
     let stdout = "";
     let stderr = "";
+    let stdoutTruncated = false;
+    let stderrTruncated = false;
     let settled = false;
+
+    // A hook can print without limit, and everything captured lives in the Pi
+    // process until the hook ends. Cap it so a runaway hook cannot grow the
+    // host's memory; the marker keeps the truncation visible to whoever reads
+    // the output instead of silently losing the tail.
+    const capture = (
+      current: string,
+      truncated: boolean,
+      chunk: Buffer,
+    ): [string, boolean] => {
+      if (truncated) return [current, true];
+      const next = current + chunk.toString();
+      if (next.length <= MAX_CAPTURED_CHARS) return [next, false];
+      return [next.slice(0, MAX_CAPTURED_CHARS), true];
+    };
+
+    const withTruncationNote = (text: string, truncated: boolean) =>
+      truncated
+        ? `${text}\n[pi-hooks] output truncated at ${MAX_CAPTURED_CHARS} characters`
+        : text;
 
     const finish = (result: { stdout: string; stderr: string; exitCode: number }) => {
       if (settled) return;
       settled = true;
-      resolve(result);
+      resolve({
+        ...result,
+        stdout: withTruncationNote(result.stdout, stdoutTruncated),
+        stderr: withTruncationNote(result.stderr, stderrTruncated),
+      });
     };
 
     child.stdout.on("data", (data) => {
-      stdout += data.toString();
+      [stdout, stdoutTruncated] = capture(stdout, stdoutTruncated, data);
     });
 
     child.stderr.on("data", (data) => {
-      stderr += data.toString();
+      [stderr, stderrTruncated] = capture(stderr, stderrTruncated, data);
     });
 
     // A hook that exits without reading its payload closes the pipe, and the

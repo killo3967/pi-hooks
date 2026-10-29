@@ -312,3 +312,29 @@ setTimeout(() => {}, 4000);`);
     }
   }
 });
+
+test("executeHook caps the output it captures from a hook", async () => {
+  // A hook can print without limit. Capturing it all means the bytes live in the
+  // Pi process until the hook ends, and then get parsed or shown; a runaway hook
+  // should not be able to grow the host's memory without bound.
+  const script = createRawScript(`
+const chunk = "x".repeat(65536);
+for (let i = 0; i < 40; i++) process.stdout.write(chunk);
+for (let i = 0; i < 40; i++) process.stderr.write(chunk);`);
+  try {
+    const result = await executeHook(
+      { type: "command", command: script.command },
+      {},
+      script.dir,
+      30000,
+    );
+
+    assert.equal(result.exitCode, 0);
+    assert.ok(result.stdout.length < 1_100_000, `stdout was ${result.stdout.length}`);
+    assert.ok(result.stderr.length < 1_100_000, `stderr was ${result.stderr.length}`);
+    assert.match(result.stdout, /truncated/);
+    assert.match(result.stderr, /truncated/);
+  } finally {
+    script.cleanup();
+  }
+});
