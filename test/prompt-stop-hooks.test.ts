@@ -4,7 +4,7 @@ import {
   registerPromptHooks,
   triggerUserPromptSubmitHooks,
 } from "../src/hooks/prompt-hooks.ts";
-import { triggerStopHooks } from "../src/hooks/stop-hooks.ts";
+import { registerStopHooks, triggerStopHooks } from "../src/hooks/stop-hooks.ts";
 import type { HookExecutionContext } from "../src/types.ts";
 import { createHookScript } from "./support/hook-script.ts";
 import { recorder, settingsWith } from "./support/settings.ts";
@@ -248,6 +248,62 @@ test("a prompt arriving while another is pending keeps both contexts", async () 
     await handlers.get("input")?.({ text: "hola" }, handlerCtx);
 
     assert.deepEqual(shared.pendingUserPromptContexts, ["earlier", "from-hook"]);
+  } finally {
+    script.cleanup();
+  }
+});
+
+test("injecting prompt context leaves a short visible notice", async () => {
+  const { pi, handlers } = fakePi();
+  const notices: string[] = [];
+  const shared = {
+    currentSettings: undefined,
+    pendingUserPromptContexts: ["a context\nwith two lines"],
+    stopHookActive: false,
+    getSessionId: () => "session.jsonl",
+    notify: (_ctx: unknown, message: string) => {
+      notices.push(message);
+    },
+    injectHiddenContext: () => {},
+  };
+  registerPromptHooks(pi, shared as never);
+
+  const run = await handlers.get("before_agent_start")?.({}, handlerCtx);
+
+  assert.equal(run?.message.display, false);
+  assert.equal(notices.length, 1);
+  assert.match(notices[0] ?? "", /UserPromptSubmit/);
+  assert.match(notices[0] ?? "", /2 lines/);
+});
+
+test("blocking Stop leaves a short visible notice", async () => {
+  const script = createHookScript(`  out({ decision: "block", reason: "keep going" });`);
+  try {
+    const { pi, handlers } = fakePi();
+    const notices: string[] = [];
+    const sent: Array<Record<string, unknown>> = [];
+    const shared = {
+      currentSettings: settingsWith("Stop", { type: "command", command: script.command }),
+      pendingUserPromptContexts: [],
+      stopHookActive: false,
+      getSessionId: () => "session.jsonl",
+      notify: (_ctx: unknown, message: string) => {
+        notices.push(message);
+      },
+      pi: {
+        sendMessage: (message: Record<string, unknown>) => {
+          sent.push(message);
+        },
+      },
+    };
+    registerStopHooks(pi, shared as never);
+
+    await handlers.get("agent_end")?.({ messages: [] }, handlerCtx);
+
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0]?.display, false);
+    assert.equal(notices.length, 1);
+    assert.match(notices[0] ?? "", /requested another turn/);
   } finally {
     script.cleanup();
   }

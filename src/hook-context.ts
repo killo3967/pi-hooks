@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { loadSettings } from "./config.ts";
-import { extractResponseFromContent } from "./helpers.ts";
+import { describeInjectedContext, extractResponseFromContent } from "./helpers.ts";
 import { triggerSessionHooks } from "./hooks/session-hooks.ts";
 import type { HookMatcherValue, SettingsFile } from "./types.ts";
 
@@ -56,10 +56,24 @@ export function createHookContext(pi: ExtensionAPI): HookModuleContext {
         display: false,
         details,
       });
+
+      // Automatic injections leave a visible one-line trace: an invisible
+      // injection is indistinguishable from no injection. Tool-level context
+      // does not get one, because the call it belongs to is already on screen.
+      if (details.hookEventName === "SessionStart") {
+        shared.pi.sendMessage({
+          customType: "pi-hooks",
+          content: describeInjectedContext("SessionStart", content),
+          display: true,
+          details: { ...details, notice: true },
+        });
+      }
     },
     initSettings: (cwd, projectTrusted) => {
       const { settings } = loadSettings(cwd, { projectTrusted });
       shared.currentSettings = settings;
+      // A new session must not inherit context queued for the previous one.
+      shared.pendingUserPromptContexts = [];
       return settings;
     },
     buildToolResponse: (event) => {

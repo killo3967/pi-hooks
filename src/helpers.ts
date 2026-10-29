@@ -74,3 +74,14 @@ export function extractResponseFromContent(content: unknown): Record<string, unk
 
   return {};
 }
+
+/**
+ * One short, human-visible line describing context a hook injected. The content
+ * itself stays hidden, but an injection should never be invisible: a model
+ * steered without the user noticing is the failure mode this guards against.
+ */
+export function describeInjectedContext(label: string, content: string): string {
+  const lines = content.split("\n").length;
+  const unit = lines === 1 ? "line" : "lines";
+  return `pi-hooks: ${label} hook injected context (${lines} ${unit}, not shown here)`;
+}

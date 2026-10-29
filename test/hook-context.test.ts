@@ -69,3 +69,50 @@ test("every compaction fires SessionStart compact, not just the first", async ()
   // silently stopped.
   assert.equal(await runTwice("compact"), 2);
 });
+
+test("a SessionStart injection adds a short visible notice next to the hidden content", async () => {
+  // The content stays hidden from the transcript, but an automatic injection
+  // must leave a visible trace: a model that is being steered invisibly is
+  // exactly the failure mode this guards against.
+  const sent: Array<Record<string, unknown>> = [];
+  const shared = createHookContext({
+    sendMessage: (message: Record<string, unknown>) => {
+      sent.push(message);
+    },
+  } as never);
+
+  shared.injectHiddenContext("line one\nline two", { hookEventName: "SessionStart" });
+
+  assert.equal(sent.length, 2);
+  assert.equal(sent[0]?.display, false);
+  assert.equal(sent[0]?.content, "line one\nline two");
+  assert.equal(sent[1]?.display, true);
+  assert.match(String(sent[1]?.content), /SessionStart/);
+  assert.match(String(sent[1]?.content), /2 lines/);
+});
+
+test("tool-level context stays hidden without a notice", () => {
+  const sent: Array<Record<string, unknown>> = [];
+  const shared = createHookContext({
+    sendMessage: (message: Record<string, unknown>) => {
+      sent.push(message);
+    },
+  } as never);
+
+  shared.injectHiddenContext("tool context", {
+    hookEventName: "PostToolUse",
+    toolName: "bash",
+  });
+
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0]?.display, false);
+});
+
+test("starting a session clears context queued for the previous one", async () => {
+  const shared = createHookContext(fakePi());
+  shared.pendingUserPromptContexts.push("stale from previous session");
+
+  shared.initSettings(process.cwd(), false);
+
+  assert.deepEqual(shared.pendingUserPromptContexts, []);
+});

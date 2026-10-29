@@ -118,6 +118,14 @@ export function registerStopHooks(pi: ExtensionAPI, shared: HookModuleContext) {
         .join("\n\n");
 
       shared.stopHookActive = true;
+
+      // The continuation message itself is hidden. Without a visible trace the
+      // turn would simply refuse to end, with no way to tell why.
+      shared.notify(
+        ctx,
+        `pi-hooks: Stop hook requested another turn (${result.reason ?? "no reason given"})`,
+        "info",
+      );
       shared.pi.sendMessage(
         {
           customType: "pi-hooks",

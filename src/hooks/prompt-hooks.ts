@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getHookGroups } from "../config.ts";
+import { describeInjectedContext } from "../helpers.ts";
 import type { HookModuleContext } from "../hook-context.ts";
 import type {
   HookExecutionContext,
@@ -121,11 +122,15 @@ export function registerPromptHooks(
     return { action: "continue" } as const;
   });
 
-  pi.on("before_agent_start", async (_event, _ctx) => {
+  pi.on("before_agent_start", async (_event, ctx) => {
     const additionalContext = shared.pendingUserPromptContexts.shift();
     if (!additionalContext) {
       return;
     }
+
+    // The context itself stays hidden, but the injection is announced: the
+    // model is steered by it, so the injection cannot be invisible.
+    shared.notify(ctx, describeInjectedContext("UserPromptSubmit", additionalContext), "info");
 
     return {
       message: {
