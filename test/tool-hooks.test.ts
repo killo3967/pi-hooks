@@ -349,3 +349,24 @@ test("PreToolUse ignores a deny reason that is not a string", async () => {
     script.cleanup();
   }
 });
+
+test("PreToolUse ignores permissionDecision ask", async () => {
+  // Pi has no per-call approval prompt ("it does not ask for approval before
+  // every tool call"), so Claude Code's third state has no equivalent. It is
+  // ignored rather than mapped onto something it does not mean; this test
+  // pins that, so a future change has to be a deliberate decision.
+  const script = createHookScript(`
+  out({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: "please confirm" } });`);
+  try {
+    const result = await triggerPreToolUseHooks(
+      "Bash",
+      bash,
+      settingsWith("PreToolUse", { type: "command", command: script.command }),
+    );
+
+    assert.equal(result.blocked, false);
+    assert.equal(result.reason, undefined);
+  } finally {
+    script.cleanup();
+  }
+});

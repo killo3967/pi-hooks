@@ -443,7 +443,7 @@ Notes:
 
 Available output fields:
 
-- `permissionDecision`: `"allow" | "deny" | "ask"`
+- `permissionDecision`: `"allow" | "deny"`
 - `permissionDecisionReason`: the reason shown to the user/caller
 - `updatedInput`: rewrites tool input before execution
 - `additionalContext`: appends extra context for later processing
@@ -480,7 +480,7 @@ Notes:
 
 - `permissionDecision: "deny"` blocks the current tool call and returns `permissionDecisionReason` to the agent; it does **not** directly stop the entire current processing flow
 - `permissionDecision: "allow"` lets the tool run; if `updatedInput` is provided, the input is merged before execution
-- `permissionDecision: "ask"` is kept for compatibility only; this extension does not open an additional permission UI
+- `permissionDecision: "ask"` is **not supported**. Pi has no per-call approval model: it "does not ask for approval before every tool call", on purpose, and security comes from limiting what the process can reach (see Pi's `docs/security.md`). Claude Code's third state therefore has no equivalent here: a hook that returns it is ignored, and the tool call proceeds as if no decision had been made. Use `deny` when you need a human to intervene, or write a Pi extension with `ctx.ui.confirm` if you want an actual prompt.
 - `updatedInput` is merged into `event.input`, while unspecified fields keep their original values
 - `additionalContext` does not block execution; it is only injected as hidden context and does not normally create an extra UI message
 - To explicitly stop the current processing flow, use Claude Code's generic field `continue: false`

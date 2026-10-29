@@ -56,7 +56,6 @@ export async function triggerPreToolUseHooks(
             jsonOutput.permissionDecision) as
             | "allow"
             | "deny"
-            | "ask"
             | undefined;
 
           if (decision === "deny") {
