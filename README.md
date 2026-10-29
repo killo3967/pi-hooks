@@ -660,4 +660,5 @@ Source code lives in `src/`:
 - Global config and project config are merged by concatenating event arrays
 - `PostToolUse` and `PostToolUseFailure` support Pi result patching
 - Input/output aims to be Claude Code-compatible where possible; anything that cannot be mapped exactly is handled in a best-effort way using Pi's event model
+- Requires `@earendil-works/pi-coding-agent` **>= 1.4.0** (declared as a peer dependency, and the version the sources are type-checked against)
 - Hidden context is injected through the `pi` instance captured when the extension loads; Pi invalidates a captured `pi` after a session replacement, and that path is a known limitation rather than a guarded error

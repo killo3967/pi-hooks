@@ -11,18 +11,6 @@ import { triggerSimpleHooks } from "./shared.ts";
 type CompactReason = "manual" | "threshold" | "overflow";
 
 /**
- * `reason` was added to the compaction events after 0.74.0, which is the
- * version this package's peer types resolve to. Read it defensively so the
- * extension works on both: no reason means the historical manual behaviour.
- */
-function readCompactReason(event: unknown): CompactReason | undefined {
-  const reason = (event as { reason?: unknown }).reason;
-  return reason === "manual" || reason === "threshold" || reason === "overflow"
-    ? reason
-    : undefined;
-}
-
-/**
  * Pi reports three compaction reasons; the Claude Code hook contract only knows
  * `manual` and `auto`. `threshold` (context pressure) and `overflow` (the
  * request did not fit) are both automatic, so they collapse to `auto`.
@@ -48,7 +36,7 @@ export function registerCompactHooks(pi: ExtensionAPI, shared: HookModuleContext
         sessionId: shared.getSessionId(ctx),
         cwd: ctx.cwd,
         hookEventName: "PreCompact",
-        trigger: toCompactTrigger(readCompactReason(event)),
+        trigger: toCompactTrigger(event.reason),
         customInstructions: event.customInstructions ?? "",
         transcriptPath: ctx.sessionManager.getSessionFile(),
       },
@@ -64,7 +52,7 @@ export function registerCompactHooks(pi: ExtensionAPI, shared: HookModuleContext
         sessionId: shared.getSessionId(ctx),
         cwd: ctx.cwd,
         hookEventName: "PostCompact",
-        trigger: toCompactTrigger(readCompactReason(event)),
+        trigger: toCompactTrigger(event.reason),
         compactSummary: event.compactionEntry.summary,
         transcriptPath: ctx.sessionManager.getSessionFile(),
       },
