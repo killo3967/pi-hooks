@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 import { buildHookInput, executeHook } from "../src/executor.ts";
 import type { HookExecutionContext } from "../src/types.ts";
@@ -271,5 +273,42 @@ test("executeHook keeps the decision of a hook that bails out before reading std
     assert.equal(result.stderr, "denied before reading");
   } finally {
     script.cleanup();
+  }
+});
+
+test("executeHook kills the whole hook process tree on timeout", async () => {
+  // The hook runs through a shell, so the spawned child is the shell and the
+  // command is its child. Killing only the shell leaves the command running and
+  // holding the pipes. This grandchild writes a marker 1.2s after the 300ms
+  // timeout has already fired.
+  const script = createRawScript(`
+const { spawn } = require("node:child_process");
+spawn(process.execPath, ["-e", "setTimeout(() => require('node:fs').writeFileSync(require('node:path').join(process.cwd(), 'marker.txt'), 'alive'), 1200)"], { stdio: "ignore" });
+setTimeout(() => {}, 4000);`);
+  try {
+    const result = await executeHook(
+      { type: "command", command: script.command },
+      {},
+      script.dir,
+      300,
+    );
+
+    assert.equal(result.exitCode, 1);
+    assert.match(result.stderr, /Hook timed out after 300 ms/);
+
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    assert.equal(
+      existsSync(path.join(script.dir, "marker.txt")),
+      false,
+      "a process started by the hook survived the timeout",
+    );
+  } finally {
+    try {
+      script.cleanup();
+    } catch {
+      // Only happens while the bug is present: the leaked process still has the
+      // script directory as its cwd. The assertion above already reported it.
+    }
   }
 });

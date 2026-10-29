@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { GLOBAL_SETTINGS_PATH, readSettingsFile } from "./config.ts";
 import type { Hook, HookExecutionContext } from "./types.ts";
@@ -143,6 +143,37 @@ function resolveShell(): ShellSpec {
   return (cachedShell = { shell: "bash", flag: "-c" });
 }
 
+/**
+ * Kills the hook and everything it started.
+ *
+ * The spawned child is the shell (`bash -c` / `cmd /c`), not the command, so
+ * `child.kill()` only reaped the shell: the command kept running, kept the
+ * stdio pipes open and, on Windows, kept the working directory from being
+ * cleaned up. A hook that hangs would leave a live process behind forever.
+ */
+function killProcessTree(child: ChildProcess): void {
+  const pid = child.pid;
+  if (!pid) return;
+
+  if (process.platform === "win32") {
+    // Windows has no process groups; taskkill walks the tree instead. It is a
+    // system tool, and if it is not there we still kill what we know about.
+    const killer = spawn("taskkill", ["/pid", String(pid), "/T", "/F"], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    killer.on("error", () => child.kill());
+    return;
+  }
+
+  try {
+    // Negative pid signals the whole process group created by `detached`.
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    child.kill("SIGKILL");
+  }
+}
+
 function executeCommandHook(
   command: string,
   inputJson: string,
@@ -154,6 +185,9 @@ function executeCommandHook(
     const child = spawn(shell, [flag, command], {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
+      // On POSIX this makes the shell a process-group leader, which is what
+      // lets a timeout signal the whole group instead of just the shell.
+      detached: process.platform !== "win32",
     });
 
     let stdout = "";
@@ -189,7 +223,7 @@ function executeCommandHook(
     }
 
     const timeout = setTimeout(() => {
-      child.kill();
+      killProcessTree(child);
       finish({
         stdout,
         stderr: `${stderr}\n[pi-hooks] Hook timed out after ${timeoutMs} ms`.trim(),
