@@ -66,7 +66,7 @@ export async function triggerStopHooks(
             jsonOutput.decision !== "block"
           ) {
             notify?.(
-              `Stop 忽略无效 decision: ${String(jsonOutput.decision)}`,
+              `Stop ignored invalid decision: ${String(jsonOutput.decision)}`,
               "warning",
             );
           }
@@ -79,17 +79,17 @@ export async function triggerStopHooks(
             return result;
           }
         } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`Stop 输出 (非JSON): ${plainStdout}`, "info");
+          notify?.(`Stop output (not JSON): ${plainStdout}`, "info");
         }
 
         if (hookResult.exitCode !== 0) {
           notify?.(
-            `Stop 失败 (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `Stop failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         }
       } catch (err) {
-        notify?.(`Stop 执行错误: ${String(err)}`, "error");
+        notify?.(`Stop error: ${String(err)}`, "error");
       }
     }
   }

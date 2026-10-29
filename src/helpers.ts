@@ -1,5 +1,5 @@
 // ============================================================================
-// 辅助函数：从 content 提取信息
+// Helpers: extract information from content
 // ============================================================================
 
 export function extractTextFromContent(content: unknown): string {
@@ -33,7 +33,7 @@ export function extractTextFromContent(content: unknown): string {
 }
 
 /**
- * 从 tool result content 中提取错误信息
+ * Extracts an error message from tool result content
  */
 export function extractErrorFromContent(content: unknown): string {
   if (!content) return "Unknown error";
@@ -47,14 +47,14 @@ export function extractErrorFromContent(content: unknown): string {
 }
 
 /**
- * 从 tool result content 中提取响应对象
+ * Extracts a response object from tool result content
  */
 export function extractResponseFromContent(content: unknown): Record<string, unknown> {
   if (!content) return {};
 
-  // content 可能是数组或单个对象
+  // content may be an array or a single object
   if (Array.isArray(content)) {
-    // 尝试构建响应对象
+    // Build the response object
     const response: Record<string, unknown> = {};
     for (const item of content) {
       if (item.type === "text" && typeof item.text === "string") {

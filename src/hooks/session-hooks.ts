@@ -23,13 +23,13 @@ export function registerSessionHooks(
   pi: ExtensionAPI,
   shared: HookModuleContext,
 ) {
-  // SessionStart 映射：
+  // SessionStart mapping:
   // startup -> session_start(reason="startup")
   // startup -> session_start(reason="new")
   // resume -> session_start(reason="resume")
   // compact -> session_compact
   //
-  // SessionEnd 映射：
+  // SessionEnd mapping:
   // other -> session_shutdown
   pi.on("session_start", async (event, ctx) => {
     shared.initSettings(ctx.cwd);
@@ -47,7 +47,7 @@ export function registerSessionHooks(
   pi.on("session_shutdown", async (_event, ctx) => {
     const reason = "other";
 
-    // SessionEnd 固定由 session_shutdown 触发，matcher 仅使用 other。
+    // SessionEnd always comes from session_shutdown, so the matcher is other.
     await triggerSessionHooks(
       "SessionEnd",
       reason,

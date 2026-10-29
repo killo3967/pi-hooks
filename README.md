@@ -1,7 +1,5 @@
 # pi-hooks
 
-English | [简体中文](./README.zh-CN.md)
-
 > **Maintained fork.** This repository is the maintained version of `pi-hooks`. Upstream
 > (`hsingjui/pi-hooks`) has had no code change since **2026-05-08**, and the npm package
 > `@hsingjui/pi-hooks` (0.0.2) predates the Windows shell fix for

@@ -4,7 +4,7 @@ import path from "node:path";
 import type { HookEventName, HookGroup, HooksConfig, SettingsFile } from "./types.ts";
 
 // ============================================================================
-// 配置读取
+// Settings loading
 // ============================================================================
 
 export const GLOBAL_SETTINGS_PATH = path.join(
@@ -136,10 +136,10 @@ export function getHookGroups(
 }
 
 /**
- * 检查 matcher 是否匹配给定的值。
+ * Checks whether a matcher matches the given value.
  *
- * 与 Claude Code 保持一致：matcher 是单个正则字符串。
- * `undefined`、`""`、`"*"` 都表示匹配全部。
+ * Matches Claude Code: the matcher is a single regex string.
+ * `undefined`, `""` and `"*"` all mean "match everything".
  */
 export function matcherMatches(
   matcher: string | undefined,

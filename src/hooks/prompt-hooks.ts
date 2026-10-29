@@ -50,7 +50,7 @@ export async function triggerUserPromptSubmitHooks(
             jsonOutput.decision !== "block"
           ) {
             notify?.(
-              `UserPromptSubmit 忽略无效 decision: ${String(jsonOutput.decision)}`,
+              `UserPromptSubmit ignored invalid decision: ${String(jsonOutput.decision)}`,
               "warning",
             );
           }
@@ -62,17 +62,17 @@ export async function triggerUserPromptSubmitHooks(
             return result;
           }
         } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`UserPromptSubmit 输出 (非JSON): ${plainStdout}`, "info");
+          notify?.(`UserPromptSubmit output (not JSON): ${plainStdout}`, "info");
         }
 
         if (hookResult.exitCode !== 0) {
           notify?.(
-            `UserPromptSubmit 失败 (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `UserPromptSubmit failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         }
       } catch (err) {
-        notify?.(`UserPromptSubmit 执行错误: ${String(err)}`, "error");
+        notify?.(`UserPromptSubmit error: ${String(err)}`, "error");
       }
     }
   }
@@ -103,7 +103,7 @@ export function registerPromptHooks(
     if (result.blocked) {
       shared.notify(
         ctx,
-        `UserPromptSubmit 阻止: ${result.reason ?? "Blocked by hook"}`,
+        `UserPromptSubmit blocked: ${result.reason ?? "Blocked by hook"}`,
         "warning",
       );
       return { action: "handled" } as const;

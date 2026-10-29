@@ -4,11 +4,11 @@ import { GLOBAL_SETTINGS_PATH, readSettingsFile } from "./config.ts";
 import type { Hook, HookExecutionContext } from "./types.ts";
 
 // ============================================================================
-// Hook 执行器
+// Hook executor
 // ============================================================================
 
 /**
- * 构建 Claude Code 风格的 JSON 输入
+ * Builds the Claude Code-style JSON input
  */
 export function buildHookInput(ctx: HookExecutionContext): object {
   const base: Record<string, unknown> = {

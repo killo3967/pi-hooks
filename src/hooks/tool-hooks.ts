@@ -39,7 +39,7 @@ export async function triggerPreToolUseHooks(
         if (hookResult.exitCode === 2) {
           result.blocked = true;
           result.reason = hookResult.stderr || "Blocked by hook";
-          notify?.(`PreToolUse 阻止: ${result.reason}`, "warning");
+          notify?.(`PreToolUse blocked: ${result.reason}`, "warning");
           return result;
         }
 
@@ -64,7 +64,7 @@ export async function triggerPreToolUseHooks(
             result.reason = (hookSpecific?.permissionDecisionReason ??
               jsonOutput.permissionDecisionReason) as string | undefined;
             result.reason ??= "Blocked by hook";
-            notify?.(`PreToolUse 拒绝: ${result.reason}`, "warning");
+            notify?.(`PreToolUse denied: ${result.reason}`, "warning");
             return result;
           }
 
@@ -86,17 +86,17 @@ export async function triggerPreToolUseHooks(
             additionalContext,
           );
         } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`PreToolUse 输出 (非JSON): ${plainStdout}`, "info");
+          notify?.(`PreToolUse output (not JSON): ${plainStdout}`, "info");
         }
 
         if (hookResult.exitCode !== 0 && hookResult.exitCode !== 2) {
           notify?.(
-            `PreToolUse 失败 (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `PreToolUse failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         }
       } catch (err) {
-        notify?.(`PreToolUse 执行错误: ${String(err)}`, "error");
+        notify?.(`PreToolUse error: ${String(err)}`, "error");
       }
     }
   }
@@ -124,7 +124,7 @@ export async function triggerPostToolUseHooks(
           await executeParsedHook(hook, context, "PostToolUse");
 
         if (hookResult.exitCode === 2) {
-          notify?.(`PostToolUse 反馈: ${hookResult.stderr}`, "warning");
+          notify?.(`PostToolUse feedback: ${hookResult.stderr}`, "warning");
           continue;
         }
 
@@ -152,17 +152,17 @@ export async function triggerPostToolUseHooks(
           if (patch.details !== undefined) result.details = patch.details;
           if (patch.isError !== undefined) result.isError = patch.isError;
         } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`PostToolUse 输出: ${plainStdout}`, "info");
+          notify?.(`PostToolUse output: ${plainStdout}`, "info");
         }
 
         if (hookResult.exitCode !== 0 && hookResult.exitCode !== 2) {
           notify?.(
-            `PostToolUse 失败 (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `PostToolUse failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         }
       } catch (err) {
-        notify?.(`PostToolUse 执行错误: ${String(err)}`, "error");
+        notify?.(`PostToolUse error: ${String(err)}`, "error");
       }
     }
   }
@@ -190,7 +190,7 @@ export async function triggerPostToolUseFailureHooks(
           await executeParsedHook(hook, context, "PostToolUseFailure");
 
         if (hookResult.exitCode === 2) {
-          notify?.(`PostToolUseFailure 反馈: ${hookResult.stderr}`, "warning");
+          notify?.(`PostToolUseFailure feedback: ${hookResult.stderr}`, "warning");
           continue;
         }
 
@@ -221,17 +221,17 @@ export async function triggerPostToolUseFailureHooks(
           if (patch.details !== undefined) result.details = patch.details;
           if (patch.isError !== undefined) result.isError = patch.isError;
         } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`PostToolUseFailure 输出: ${plainStdout}`, "info");
+          notify?.(`PostToolUseFailure output: ${plainStdout}`, "info");
         }
 
         if (hookResult.exitCode !== 0 && hookResult.exitCode !== 2) {
           notify?.(
-            `PostToolUseFailure 失败 (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `PostToolUseFailure failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         }
       } catch (err) {
-        notify?.(`PostToolUseFailure 执行错误: ${String(err)}`, "error");
+        notify?.(`PostToolUseFailure error: ${String(err)}`, "error");
       }
     }
   }

@@ -1,5 +1,5 @@
 // ============================================================================
-// 类型定义
+// Type definitions
 // ============================================================================
 
 export type HookType = "command";
@@ -31,7 +31,7 @@ export type HooksConfig = {
   PostToolUseFailure?: HookGroup[];
   UserPromptSubmit?: HookGroup[];
   Stop?: HookGroup[];
-  // 支持小写别名
+  // Lowercase aliases are accepted too
   session_start?: HookGroup[];
   session_end?: HookGroup[];
   pre_compact?: HookGroup[];
@@ -92,7 +92,7 @@ export interface HookExecutionContext {
 }
 
 // ============================================================================
-// Hook 结果类型
+// Hook result types
 // ============================================================================
 
 export type NotifyFn = (
