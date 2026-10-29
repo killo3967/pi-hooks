@@ -88,17 +88,39 @@ export function mergeHooks(
   return hasAnyHook ? merged : undefined;
 }
 
-export function loadSettings(cwd: string): {
+export type LoadSettingsOptions = {
+  /**
+   * Whether Pi granted project trust for `cwd`. `.pi/settings.json` is a
+   * trust-protected resource: Pi will not load it before the user approves the
+   * folder, because it can contain executable hooks. Reading it anyway would
+   * turn `git clone` plus a session in that folder into arbitrary command
+   * execution. Untrusted projects still get the global settings.
+   */
+  projectTrusted?: boolean;
+  /** Test seam; defaults to the real global settings path. */
+  globalSettingsPath?: string;
+};
+
+export function loadSettings(
+  cwd: string,
+  options: LoadSettingsOptions = {},
+): {
   settings: SettingsFile | undefined;
   sourcePaths: string[];
 } {
+  const globalSettingsPath = options.globalSettingsPath ?? GLOBAL_SETTINGS_PATH;
   const projectSettingsPath = path.join(cwd, ".pi", "settings.json");
-  const globalSettings = readSettingsFile(GLOBAL_SETTINGS_PATH);
-  const projectSettings = readSettingsFile(projectSettingsPath);
+  const projectTrusted = options.projectTrusted === true;
 
-  const sourcePaths = [GLOBAL_SETTINGS_PATH, projectSettingsPath].filter((p) =>
-    existsSync(p),
-  );
+  const globalSettings = readSettingsFile(globalSettingsPath);
+  const projectSettings = projectTrusted
+    ? readSettingsFile(projectSettingsPath)
+    : undefined;
+
+  const sourcePaths = [
+    globalSettingsPath,
+    ...(projectTrusted ? [projectSettingsPath] : []),
+  ].filter((p) => existsSync(p));
 
   const hooks = mergeHooks(globalSettings?.hooks, projectSettings?.hooks);
 

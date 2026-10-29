@@ -18,7 +18,7 @@ export type HookModuleContext = {
     content: string,
     details: Record<string, unknown>,
   ) => void;
-  initSettings: (cwd: string) => SettingsFile | undefined;
+  initSettings: (cwd: string, projectTrusted: boolean) => SettingsFile | undefined;
   buildToolResponse: (event: {
     content: unknown;
     details?: unknown;
@@ -56,8 +56,8 @@ export function createHookContext(pi: ExtensionAPI): HookModuleContext {
         details,
       });
     },
-    initSettings: (cwd: string) => {
-      const { settings } = loadSettings(cwd);
+    initSettings: (cwd, projectTrusted) => {
+      const { settings } = loadSettings(cwd, { projectTrusted });
       shared.currentSettings = settings;
       return settings;
     },

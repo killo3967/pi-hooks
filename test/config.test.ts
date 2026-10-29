@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import {
   getHookGroups,
+  loadSettings,
   matcherMatches,
   mergeHooks,
   readSettingsFile,
@@ -179,6 +180,71 @@ test("readSettingsFile rejects a non-string shellPath", () => {
   try {
     writeFileSync(file, JSON.stringify({ shellPath: 42 }), "utf8");
     assert.equal(readSettingsFile(file), undefined);
+  } finally {
+    cleanup();
+  }
+});
+
+test("loadSettings ignores project settings unless the project is trusted", () => {
+  const { dir, cleanup } = tempDir();
+  try {
+    const projectPi = path.join(dir, ".pi");
+    mkdirSync(projectPi, { recursive: true });
+    const projectSettings = path.join(projectPi, "settings.json");
+    writeFileSync(
+      projectSettings,
+      JSON.stringify({
+        hooks: {
+          PreToolUse: [{ hooks: [{ type: "command", command: "echo from-project" }] }],
+        },
+      }),
+      "utf8",
+    );
+
+    const absentGlobal = path.join(dir, "no-global.json");
+    const untrusted = loadSettings(dir, { projectTrusted: false, globalSettingsPath: absentGlobal });
+    assert.equal(untrusted.settings, undefined);
+    assert.deepEqual(untrusted.sourcePaths, []);
+
+    const trusted = loadSettings(dir, { projectTrusted: true, globalSettingsPath: absentGlobal });
+    assert.deepEqual(
+      trusted.settings?.hooks?.PreToolUse?.flatMap((g) => g.hooks?.map((h) => h.command) ?? []),
+      ["echo from-project"],
+    );
+    assert.deepEqual(trusted.sourcePaths, [projectSettings]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("global hooks still load when the project is not trusted", () => {
+  const { dir, cleanup } = tempDir();
+  try {
+    const globalSettings = path.join(dir, "global.json");
+    writeFileSync(
+      globalSettings,
+      JSON.stringify({
+        hooks: { Stop: [{ hooks: [{ type: "command", command: "echo from-global" }] }] },
+      }),
+      "utf8",
+    );
+    const projectPi = path.join(dir, ".pi");
+    mkdirSync(projectPi, { recursive: true });
+    writeFileSync(
+      path.join(projectPi, "settings.json"),
+      JSON.stringify({
+        hooks: { Stop: [{ hooks: [{ type: "command", command: "echo from-project" }] }] },
+      }),
+      "utf8",
+    );
+
+    const untrusted = loadSettings(dir, { projectTrusted: false, globalSettingsPath: globalSettings });
+
+    assert.deepEqual(
+      untrusted.settings?.hooks?.Stop?.flatMap((g) => g.hooks?.map((h) => h.command) ?? []),
+      ["echo from-global"],
+    );
+    assert.deepEqual(untrusted.sourcePaths, [globalSettings]);
   } finally {
     cleanup();
   }

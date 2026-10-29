@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { triggerSessionHooks } from "../src/hooks/session-hooks.ts";
+import {
+  registerSessionHooks,
+  triggerSessionHooks,
+} from "../src/hooks/session-hooks.ts";
 import type { HookExecutionContext } from "../src/types.ts";
 import { createHookScript } from "./support/hook-script.ts";
 import { recorder, settingsWith } from "./support/settings.ts";
@@ -47,4 +50,37 @@ test("a failing session hook names its event in the notification", async () => {
   } finally {
     script.cleanup();
   }
+});
+
+test("session_start forwards the project trust decision to the settings loader", async () => {
+  const calls: Array<[string, boolean]> = [];
+  const handlers = new Map<string, (event: any, ctx: any) => Promise<unknown>>();
+  const pi = {
+    on: (name: string, handler: (event: any, ctx: any) => Promise<unknown>) => {
+      handlers.set(name, handler);
+      return () => {};
+    },
+  };
+
+  registerSessionHooks(pi as never, {
+    currentSettings: undefined,
+    firedSessionStartKeys: new Set<string>(),
+    stopHookActive: false,
+    getSessionId: () => "session.jsonl",
+    notify: () => {},
+    injectHiddenContext: () => {},
+    initSettings: (cwd: string, projectTrusted: boolean) => {
+      calls.push([cwd, projectTrusted]);
+      return undefined;
+    },
+    buildToolResponse: () => ({}),
+    triggerSessionStartHook: async () => {},
+  } as never);
+
+  await handlers.get("session_start")?.(
+    { reason: "startup" },
+    { cwd: "/work", isProjectTrusted: () => false },
+  );
+
+  assert.deepEqual(calls, [["/work", false]]);
 });

@@ -32,7 +32,11 @@ export function registerSessionHooks(
   // SessionEnd mapping:
   // other -> session_shutdown
   pi.on("session_start", async (event, ctx) => {
-    shared.initSettings(ctx.cwd);
+    // `.pi/settings.json` is a trust-protected resource: Pi withholds it until
+    // the user approves the folder, because it can hold executable hooks. The
+    // decision is passed through so an untrusted project only gets the global
+    // settings.
+    shared.initSettings(ctx.cwd, ctx.isProjectTrusted());
 
     if (event.reason === "startup" || event.reason === "new") {
       await shared.triggerSessionStartHook("startup", ctx);
