@@ -61,8 +61,12 @@ export async function triggerPreToolUseHooks(
 
           if (decision === "deny") {
             result.blocked = true;
-            result.reason = (hookSpecific?.permissionDecisionReason ??
-              jsonOutput.permissionDecisionReason) as string | undefined;
+            // A hook can put anything here; only a non-empty string is a reason
+            // worth showing, and an object would render as [object Object].
+            result.reason = getStringField(
+              hookSpecific?.permissionDecisionReason,
+              jsonOutput.permissionDecisionReason,
+            );
             result.reason ??= "Blocked by a hook";
             notify?.(`PreToolUse denied by hook: ${result.reason}`, "warning");
             return result;

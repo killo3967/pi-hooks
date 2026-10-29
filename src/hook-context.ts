@@ -41,6 +41,13 @@ export function createHookContext(pi: ExtensionAPI): HookModuleContext {
       ctx.sessionManager.getSessionFile() ?? "ephemeral",
     notify: (ctx: any, msg: string, type: NotifyType) =>
       ctx.ui.notify(msg, type),
+    // Known limitation: this uses the `pi` captured when the extension loaded.
+    // Pi invalidates a captured `pi` after a session replacement (newSession,
+    // fork, switchSession, reload), which is what PR #2 upstream tried to paper
+    // over with a blanket try/catch. Reproducing that on pi 1.4 needed a host
+    // driven replacement and did not reproduce through `-p`, so there is no
+    // evidence to justify swallowing errors here; if it ever shows up, pass the
+    // fresh event `ctx` instead of guarding with a silent catch.
     injectHiddenContext: (content, details) => {
       shared.pi.sendMessage({
         customType: "pi-hooks",
@@ -73,11 +80,19 @@ export function createHookContext(pi: ExtensionAPI): HookModuleContext {
     },
     triggerSessionStartHook: async (matcher, ctx) => {
       const sessionId = shared.getSessionId(ctx);
-      const dedupeKey = `${matcher}:${sessionId}`;
-      if (shared.firedSessionStartKeys.has(dedupeKey)) {
-        return;
+
+      // `startup` can arrive twice for the same session (Pi emits `startup` and
+      // then `new`) and `resume` is re-emitted on some flows, so both are
+      // deduped per session. `compact` is different: it fires once per
+      // compaction and a long session compacts many times, so deduping it made
+      // the hook run only the first time.
+      if (matcher !== "compact") {
+        const dedupeKey = `${matcher}:${sessionId}`;
+        if (shared.firedSessionStartKeys.has(dedupeKey)) {
+          return;
+        }
+        shared.firedSessionStartKeys.add(dedupeKey);
       }
-      shared.firedSessionStartKeys.add(dedupeKey);
 
       const result = await triggerSessionHooks(
         "SessionStart",

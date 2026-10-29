@@ -150,3 +150,36 @@ test("mergeHooks drops keys it does not know", () => {
 
   assert.equal(merged, undefined);
 });
+
+test("readSettingsFile rejects a document that is not an object", () => {
+  const { dir, cleanup } = tempDir();
+  const file = path.join(dir, "settings.json");
+  try {
+    writeFileSync(file, "[]", "utf8");
+    assert.equal(readSettingsFile(file), undefined);
+  } finally {
+    cleanup();
+  }
+});
+
+test("readSettingsFile rejects a malformed hooks value", () => {
+  const { dir, cleanup } = tempDir();
+  const file = path.join(dir, "settings.json");
+  try {
+    writeFileSync(file, JSON.stringify({ hooks: "not-an-object" }), "utf8");
+    assert.equal(readSettingsFile(file), undefined);
+  } finally {
+    cleanup();
+  }
+});
+
+test("readSettingsFile rejects a non-string shellPath", () => {
+  const { dir, cleanup } = tempDir();
+  const file = path.join(dir, "settings.json");
+  try {
+    writeFileSync(file, JSON.stringify({ shellPath: 42 }), "utf8");
+    assert.equal(readSettingsFile(file), undefined);
+  } finally {
+    cleanup();
+  }
+});

@@ -43,9 +43,23 @@ export function readSettingsFile(settingsPath: string): SettingsFile | undefined
   try {
     const raw = readFileSync(settingsPath, "utf8");
     const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") {
+
+    // A settings file with the wrong shape is a broken configuration, not a
+    // valid one with missing keys: treat it as absent so the hook layer falls
+    // back instead of silently ignoring half a file.
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return undefined;
     }
+
+    const candidate = parsed as Record<string, unknown>;
+    const hooks = candidate.hooks;
+    if (hooks !== undefined && (typeof hooks !== "object" || hooks === null || Array.isArray(hooks))) {
+      return undefined;
+    }
+    if (candidate.shellPath !== undefined && typeof candidate.shellPath !== "string") {
+      return undefined;
+    }
+
     return parsed as SettingsFile;
   } catch {
     return undefined;

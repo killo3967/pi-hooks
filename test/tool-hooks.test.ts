@@ -326,3 +326,26 @@ test("PreToolUse blocks with the configuration reported in issue #1", async () =
     script.cleanup();
   }
 });
+
+test("PreToolUse ignores a deny reason that is not a string", async () => {
+  // The field is cast to string today, so a hook returning an object leaks it
+  // into the block reason and ends up rendered as [object Object].
+  const script = createHookScript(`
+  out({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: { why: "nope" } } });`);
+  try {
+    const { notify, messages } = recorder();
+
+    const result = await triggerPreToolUseHooks(
+      "Bash",
+      bash,
+      settingsWith("PreToolUse", { type: "command", command: script.command }),
+      notify,
+    );
+
+    assert.equal(result.blocked, true);
+    assert.equal(result.reason, "Blocked by a hook");
+    assert.ok(!String(messages[0]?.[0]).includes("[object Object]"));
+  } finally {
+    script.cleanup();
+  }
+});
