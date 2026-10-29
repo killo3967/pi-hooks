@@ -2,14 +2,22 @@
 
 English | [简体中文](./README.zh-CN.md)
 
-> **Fork notice (2026-09-19).** This fork is what a Windows setup actually runs while upstream is
-> inactive: upstream `main` has had no code changes since **2026-05-08**, and `@hsingjui/pi-hooks` on
-> npm (0.0.2) predates the fix for [#3](https://github.com/hsingjui/pi-hooks/issues/3).
+> **Maintained fork.** This repository is the maintained version of `pi-hooks`. Upstream
+> (`hsingjui/pi-hooks`) has had no code change since **2026-05-08**, and the npm package
+> `@hsingjui/pi-hooks` (0.0.2) predates the Windows shell fix for
+> [#3](https://github.com/hsingjui/pi-hooks/issues/3). Install from this repository:
 >
-> `main` here = upstream `main` + [PR #6](https://github.com/hsingjui/pi-hooks/pull/6) —
-> platform-aware shell resolution: settings `shellPath` → known Git Bash/MSYS2 paths →
-> `COMSPEC`/`cmd.exe`. **It supersedes [PR #4](https://github.com/hsingjui/pi-hooks/pull/4)**: the two
-> change the same lines of `src/executor.ts` and are not meant to be merged together.
+> ```bash
+> pi install git:github.com/killo3967/pi-hooks
+> ```
+>
+> `main` includes the platform-aware shell resolution contributed by
+> [@KedraVt](https://github.com/KedraVt) in [PR #6](https://github.com/hsingjui/pi-hooks/pull/6):
+> settings `shellPath` → known Git Bash/MSYS2 paths → `COMSPEC`/`cmd.exe`. It supersedes
+> [PR #4](https://github.com/hsingjui/pi-hooks/pull/4), which changes the same lines of
+> `src/executor.ts` and is not meant to be merged together.
+>
+> Upstream issues and pull requests are still read as a backlog, but fixes land here.
 
 Claude Code-compatible command hooks for the Pi coding agent.
 
@@ -20,7 +28,7 @@ This package adapts Claude Code's hook configuration format to Pi's extension ev
 1. Install the package:
 
 ```bash
-pi install npm:@hsingjui/pi-hooks
+pi install git:github.com/killo3967/pi-hooks
 ```
 
 2. Add hooks to `.pi/settings.json` (or `~/.pi/agent/settings.json`):
@@ -554,11 +562,14 @@ Then run:
 /pi-hooks-reset
 ```
 
-### As an npm package
+### As a Pi package
 
 ```bash
-pi install npm:@hsingjui/pi-hooks
+pi install git:github.com/killo3967/pi-hooks
 ```
+
+The upstream npm package `@hsingjui/pi-hooks` still exists but is a stale snapshot without the
+Windows shell fix; it is not the maintained version.
 
 ### Tests and checks
 

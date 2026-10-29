@@ -1,7 +1,8 @@
 {
-  "name": "@hsingjui/pi-hooks",
-  "version": "0.0.1",
-  "description": "Claude Code-compatible command hooks for the Pi coding agent",
+  "name": "@killo3967/pi-hooks",
+  "version": "0.1.0",
+  "description": "Claude Code-compatible command hooks for the Pi coding agent (maintained fork)",
+  "author": "killo3967",
   "type": "module",
   "keywords": [
     "pi-package",
@@ -20,12 +21,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hsingjui/pi-hooks.git"
+    "url": "git+https://github.com/killo3967/pi-hooks.git"
   },
   "bugs": {
-    "url": "https://github.com/hsingjui/pi-hooks/issues"
+    "url": "https://github.com/killo3967/pi-hooks/issues"
   },
-  "homepage": "https://github.com/hsingjui/pi-hooks#readme",
+  "homepage": "https://github.com/killo3967/pi-hooks#readme",
   "publishConfig": {
     "access": "public"
   },

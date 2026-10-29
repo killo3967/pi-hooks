@@ -4,6 +4,16 @@
 
 将 Claude Code 的 command hooks 配置格式适配到 Pi 的扩展事件系统。
 
+> **维护分支。** 本仓库是 `pi-hooks` 的维护版本。上游（`hsingjui/pi-hooks`）自 **2026-05-08** 起未再修改，npm 上的 `@hsingjui/pi-hooks`（0.0.2）也不包含 Windows 下 shell 解析的修复（[#3](https://github.com/hsingjui/pi-hooks/issues/3)）。请从本仓库安装：
+>
+> ```bash
+> pi install git:github.com/killo3967/pi-hooks
+> ```
+>
+> `main` 包含 [@KedraVt](https://github.com/KedraVt) 在 [PR #6](https://github.com/hsingjui/pi-hooks/pull/6) 中提交的跨平台 shell 解析：settings `shellPath` → 已知的 Git Bash/MSYS2 路径 → `COMSPEC`/`cmd.exe`。它取代了 [PR #4](https://github.com/hsingjui/pi-hooks/pull/4)（两者修改 `src/executor.ts` 的同一段代码，不应同时合并）。
+>
+> 上游的 issue 和 PR 仍作为待办来源阅读，但修复在本仓库进行。
+
 这个包把 Claude Code 的 hooks 配置习惯映射到 Pi 的扩展事件系统上，方便你以较少改动复用原有的 command hook 工作流。
 
 ## Quick Setup
@@ -11,7 +21,7 @@
 1. 安装包：
 
 ```bash
-pi install npm:@hsingjui/pi-hooks
+pi install git:github.com/killo3967/pi-hooks
 ```
 
 2. 在 `.pi/settings.json`（或 `~/.pi/agent/settings.json`）里添加 hooks：
@@ -545,11 +555,13 @@ pi
 /pi-hooks-reset
 ```
 
-### 作为 npm 包使用
+### 作为 Pi 包使用
 
 ```bash
-pi install npm:@hsingjui/pi-hooks
+pi install git:github.com/killo3967/pi-hooks
 ```
+
+上游的 npm 包 `@hsingjui/pi-hooks` 仍然存在，但已过时且不含 Windows shell 修复，不是维护版本。
 
 ## 项目结构
 
