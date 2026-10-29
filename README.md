@@ -560,6 +560,21 @@ Then run:
 pi install npm:@hsingjui/pi-hooks
 ```
 
+### Tests and checks
+
+```bash
+pnpm install
+pnpm run typecheck   # tsc --noEmit over src/ and test/
+pnpm test            # node --test, no build step
+```
+
+Tests run against the TypeScript sources directly through Node's native type
+stripping (Node 24+), so there is no build step, no test framework dependency
+and no compiled output. Hook execution is exercised for real: a test writes a
+throwaway script and runs it through the same shell resolution the extension
+uses, which means the Windows `cmd.exe` fallback path is covered on Windows
+runners and the POSIX `bash -c` path on Linux ones.
+
 ## Project Structure
 
 Source code lives in `src/`:
@@ -574,6 +589,7 @@ Source code lives in `src/`:
 - `src/hooks/tool-hooks.ts` - `PreToolUse` / `PostToolUse` / `PostToolUseFailure`
 - `src/hooks/stop-hooks.ts` - `Stop`
 - `src/types.ts` - type definitions
+- `test/` - `node:test` suites, one file per module under `src/`
 
 ## Notes
 

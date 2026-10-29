@@ -1,0 +1,10 @@
+# pnpm settings for this single-package repository.
+#
+# The native build scripts below come from `@earendil-works/pi-coding-agent`'s
+# optional tooling, not from anything the extension or the tests run. They are
+# ignored on purpose, and the strict check that turns "ignored build script"
+# into an install error is relaxed so a plain install does not fail.
+strictDepBuilds: false
+ignoredBuiltDependencies:
+  - koffi
+  - protobufjs
