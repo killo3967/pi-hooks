@@ -624,6 +624,10 @@ like any other script you run on your machine.
   results, which can contain file contents and secrets. Only configure hooks you trust.
 - **Hook output is not persisted.** Notifications carry a hook's stdout/stderr to the UI but are not
   written to the session transcript.
+- **There is no fail-closed mode.** When a hook cannot run — timeout, missing binary, broken shell —
+  the action proceeds and the failure is only reported. That is deliberate, and `pi-hooks` does not
+  expose a switch to turn a broken guardrail into a denial. Use a hook that always returns a decision
+  if you need one, not one whose absence blocks you.
 
 ## Troubleshooting
 
