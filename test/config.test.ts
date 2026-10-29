@@ -249,3 +249,47 @@ test("global hooks still load when the project is not trusted", () => {
     cleanup();
   }
 });
+
+test("getHookGroups ignores malformed groups instead of throwing", () => {
+  // A null or mistyped entry used to escape the try/catch in the tool hooks and
+  // Pi then blocks the tool as a fail-safe: one bad entry disabled every tool.
+  const settings = {
+    hooks: { PreToolUse: [null, "nope", { hooks: "bad" }] },
+  } as never;
+
+  assert.deepEqual(getHookGroups(settings, "PreToolUse"), []);
+});
+
+test("getHookGroups keeps command hooks and drops everything else", () => {
+  const settings = {
+    hooks: {
+      PreToolUse: [
+        {
+          hooks: [
+            null,
+            { type: "prompt", command: "echo prompt" },
+            { type: "command" },
+            { type: "command", command: "   " },
+            { type: "command", command: "echo ok" },
+          ],
+        },
+      ],
+    },
+  } as never;
+
+  const groups = getHookGroups(settings, "PreToolUse");
+
+  assert.equal(groups.length, 1);
+  assert.deepEqual(
+    groups[0]?.hooks?.map((hook) => hook.command),
+    ["echo ok"],
+  );
+});
+
+test("getHookGroups drops groups whose matcher is not a string", () => {
+  const settings = {
+    hooks: { Stop: [{ matcher: 42, hooks: [{ type: "command", command: "echo hi" }] }] },
+  } as never;
+
+  assert.deepEqual(getHookGroups(settings, "Stop"), []);
+});

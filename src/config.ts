@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { HookEventName, HookGroup, HooksConfig, SettingsFile } from "./types.ts";
+import type { Hook, HookEventName, HookGroup, HooksConfig, SettingsFile } from "./types.ts";
 
 // ============================================================================
 // Settings loading
@@ -134,6 +134,60 @@ export function loadSettings(
   };
 }
 
+function sanitizeHook(value: unknown): Hook | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const hook = value as Record<string, unknown>;
+
+  // Claude Code has other hook types (for example "prompt"); this extension only
+  // runs command hooks, so anything else is skipped instead of executed.
+  if (hook.type !== "command") return undefined;
+  if (typeof hook.command !== "string" || !hook.command.trim()) return undefined;
+  if (hook.if !== undefined && typeof hook.if !== "string") return undefined;
+  if (
+    hook.timeout !== undefined &&
+    (typeof hook.timeout !== "number" || !Number.isFinite(hook.timeout) || hook.timeout <= 0)
+  ) {
+    return undefined;
+  }
+
+  return {
+    type: "command",
+    command: hook.command,
+    ...(typeof hook.if === "string" ? { if: hook.if } : {}),
+    ...(typeof hook.timeout === "number" ? { timeout: hook.timeout } : {}),
+  };
+}
+
+function sanitizeGroup(value: unknown): HookGroup | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const group = value as Record<string, unknown>;
+  if (group.matcher !== undefined && typeof group.matcher !== "string") return undefined;
+  if (group.hooks !== undefined && !Array.isArray(group.hooks)) return undefined;
+
+  const hooks = ((group.hooks as unknown[] | undefined) ?? []).flatMap((hook) => {
+    const clean = sanitizeHook(hook);
+    return clean ? [clean] : [];
+  });
+
+  return {
+    ...(typeof group.matcher === "string" ? { matcher: group.matcher } : {}),
+    hooks,
+  };
+}
+
+/**
+ * Malformed entries are dropped instead of thrown at. A single null group used
+ * to raise a TypeError inside a tool_call handler, and Pi answers a failing
+ * tool_call handler by blocking the tool: one typo in settings.json disabled
+ * every tool call in the session.
+ */
+function sanitizeGroups(values: unknown[]): HookGroup[] {
+  return values.flatMap((value) => {
+    const clean = sanitizeGroup(value);
+    return clean ? [clean] : [];
+  });
+}
+
 export function getHookGroups(
   settings: SettingsFile | undefined,
   eventName: HookEventName,
@@ -141,34 +195,40 @@ export function getHookGroups(
   const hooks = settings?.hooks;
   if (!hooks) return [];
 
+  let groups: unknown[];
   switch (eventName) {
     case "SessionStart":
-      return [...(hooks.SessionStart ?? []), ...(hooks.session_start ?? [])];
+      groups = [...(hooks.SessionStart ?? []), ...(hooks.session_start ?? [])];
+      break;
     case "SessionEnd":
-      return [...(hooks.SessionEnd ?? []), ...(hooks.session_end ?? [])];
+      groups = [...(hooks.SessionEnd ?? []), ...(hooks.session_end ?? [])];
+      break;
     case "PreCompact":
-      return [...(hooks.PreCompact ?? []), ...(hooks.pre_compact ?? [])];
+      groups = [...(hooks.PreCompact ?? []), ...(hooks.pre_compact ?? [])];
+      break;
     case "PostCompact":
-      return [...(hooks.PostCompact ?? []), ...(hooks.post_compact ?? [])];
+      groups = [...(hooks.PostCompact ?? []), ...(hooks.post_compact ?? [])];
+      break;
     case "PreToolUse":
-      return [...(hooks.PreToolUse ?? []), ...(hooks.pre_tool_use ?? [])];
+      groups = [...(hooks.PreToolUse ?? []), ...(hooks.pre_tool_use ?? [])];
+      break;
     case "PostToolUse":
-      return [...(hooks.PostToolUse ?? []), ...(hooks.post_tool_use ?? [])];
+      groups = [...(hooks.PostToolUse ?? []), ...(hooks.post_tool_use ?? [])];
+      break;
     case "PostToolUseFailure":
-      return [
-        ...(hooks.PostToolUseFailure ?? []),
-        ...(hooks.post_tool_use_failure ?? []),
-      ];
+      groups = [...(hooks.PostToolUseFailure ?? []), ...(hooks.post_tool_use_failure ?? [])];
+      break;
     case "UserPromptSubmit":
-      return [
-        ...(hooks.UserPromptSubmit ?? []),
-        ...(hooks.user_prompt_submit ?? []),
-      ];
+      groups = [...(hooks.UserPromptSubmit ?? []), ...(hooks.user_prompt_submit ?? [])];
+      break;
     case "Stop":
-      return [...(hooks.Stop ?? []), ...(hooks.stop ?? [])];
+      groups = [...(hooks.Stop ?? []), ...(hooks.stop ?? [])];
+      break;
     default:
-      return [];
+      groups = [];
   }
+
+  return sanitizeGroups(groups);
 }
 
 /**
