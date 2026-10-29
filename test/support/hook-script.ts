@@ -28,18 +28,9 @@ process.stdin.on("end", () => {
   const fail = (code, message) => { process.stderr.write(message); process.exit(code); };
 `;
 
-/**
- * Writes a throwaway CommonJS hook script that receives the hook payload on
- * stdin and runs `body` inside the stdin `end` handler, where `payload`,
- * `out`, `raw` and `fail` are in scope.
- *
- * Tests execute it through the real executor: no module mocking, so the shell
- * resolution, the stdin write and the output parsing are all exercised.
- */
-export function createHookScript(body: string): HookScript {
+function writeScript(source: string): HookScript {
   const dir = mkdtempSync(path.join(os.tmpdir(), "pi-hooks-test-"));
   const scriptPath = path.join(dir, "hook.cjs");
-  const source = `${PRELUDE}${body}\n});\n`;
   writeFileSync(scriptPath, source, "utf8");
 
   return {
@@ -50,4 +41,25 @@ export function createHookScript(body: string): HookScript {
     cleanup: () =>
       rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }),
   };
+}
+
+/**
+ * Writes a throwaway CommonJS hook script that receives the hook payload on
+ * stdin and runs `body` inside the stdin `end` handler, where `payload`,
+ * `out`, `raw` and `fail` are in scope.
+ *
+ * Tests execute it through the real executor: no module mocking, so the shell
+ * resolution, the stdin write and the output parsing are all exercised.
+ */
+export function createHookScript(body: string): HookScript {
+  return writeScript(`${PRELUDE}${body}\n});\n`);
+}
+
+/**
+ * Writes a hook script that runs `source` verbatim, with no stdin handling at
+ * all — the shape of a real hook that decides without reading its payload
+ * (`exit 2`, a one-line shell block, a command that fails to start).
+ */
+export function createRawScript(source: string): HookScript {
+  return writeScript(`${source}\n`);
 }

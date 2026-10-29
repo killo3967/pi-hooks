@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildHookInput, executeHook } from "../src/executor.ts";
 import type { HookExecutionContext } from "../src/types.ts";
-import { createHookScript } from "./support/hook-script.ts";
+import { createHookScript, createRawScript } from "./support/hook-script.ts";
 
 const base: HookExecutionContext = {
   sessionId: "session.jsonl",
@@ -229,6 +229,46 @@ test("executeHook kills a hook that exceeds its timeout", async () => {
     assert.equal(result.exitCode, 1);
     assert.match(result.stderr, /Hook timed out/);
     assert.ok(Date.now() - started < 4000, "the hook should be killed early");
+  } finally {
+    script.cleanup();
+  }
+});
+
+test("executeHook survives a hook that exits without reading a large payload", async () => {
+  // A real hook often exits before reading stdin (`exit 2`, a one-line block),
+  // while the payload can be large: tool_input carries file contents and
+  // tool_response carries command output. Writing into that closed pipe used to
+  // raise an uncaught EOF error and take the process down.
+  const script = createRawScript("process.exit(0);");
+  try {
+    const payload = { tool_name: "read", tool_response: { content: "x".repeat(256 * 1024) } };
+
+    const result = await executeHook(
+      { type: "command", command: script.command },
+      payload,
+      script.dir,
+      15000,
+    );
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.stdout, "");
+  } finally {
+    script.cleanup();
+  }
+});
+
+test("executeHook keeps the decision of a hook that bails out before reading stdin", async () => {
+  const script = createRawScript('process.stderr.write("denied before reading");\nprocess.exit(2);');
+  try {
+    const result = await executeHook(
+      { type: "command", command: script.command },
+      { tool_input: { content: "x".repeat(256 * 1024) } },
+      script.dir,
+      15000,
+    );
+
+    assert.equal(result.exitCode, 2);
+    assert.equal(result.stderr, "denied before reading");
   } finally {
     script.cleanup();
   }

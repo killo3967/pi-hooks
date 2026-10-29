@@ -174,8 +174,19 @@ function executeCommandHook(
       stderr += data.toString();
     });
 
-    child.stdin.write(inputJson);
-    child.stdin.end();
+    // A hook that exits without reading its payload closes the pipe, and the
+    // write then fails with EOF/EPIPE. That is not a failure worth reporting:
+    // the exit code and stderr still describe what the hook decided. Without a
+    // listener the stream raises it as an uncaught exception, and the host
+    // process goes down with it — a 256 KB tool_response is enough to trigger
+    // that against a one-line `exit 2` hook.
+    child.stdin.on("error", () => {});
+    try {
+      child.stdin.write(inputJson);
+      child.stdin.end();
+    } catch {
+      // Same case, raised synchronously: the stream was already closed.
+    }
 
     const timeout = setTimeout(() => {
       child.kill();
