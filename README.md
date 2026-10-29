@@ -569,6 +569,21 @@ pi install git:github.com/killo3967/pi-hooks
 The upstream npm package `@hsingjui/pi-hooks` still exists but is a stale snapshot without the
 Windows shell fix; it is not the maintained version.
 
+### Releasing
+
+Versions are published from CI, not from a laptop. Once the package has a trusted publisher
+configured on npmjs.com (GitHub Actions, repository `killo3967/pi-hooks`, workflow `publish.yml`,
+with *Allow npm publish* enabled):
+
+```bash
+npm version patch   # or minor / major: bumps package.json and creates the tag
+ git push --follow-tags
+```
+
+The tag triggers `.github/workflows/publish.yml`, which runs the checks and publishes with OIDC
+short-lived credentials (plus provenance attestations). No npm token is stored in the repository.
+Pushing a tag whose version is already on the registry is a no-op, so re-tags are safe.
+
 ### Tests and checks
 
 ```bash
