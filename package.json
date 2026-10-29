@@ -1,6 +1,6 @@
 {
   "name": "@killo3967/pi-hooks",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Claude Code-compatible command hooks for the Pi coding agent (maintained fork)",
   "author": "killo3967",
   "type": "module",
