@@ -294,3 +294,30 @@ test("tool hooks are inert without settings", async () => {
   assert.deepEqual(await triggerPostToolUseHooks("Bash", bash, undefined), {});
   assert.deepEqual(await triggerPostToolUseFailureHooks("Bash", bash, undefined), {});
 });
+
+test("PreToolUse blocks with the configuration reported in issue #1", async () => {
+  // Issue #1 reported that this shape never blocked a `git add` call: a hook
+  // printing its deny JSON, a lowercase "bash" matcher and an "if" condition on
+  // the command. The output starts with a newline, which the parser trims.
+  const script = createHookScript(`
+  raw(String.fromCharCode(10));
+  out({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "git add is disabled - use git add -p" } });`);
+  try {
+    const settings = settingsWith(
+      "PreToolUse",
+      { type: "command", command: script.command, if: "Bash(git add*)" },
+      "bash",
+    );
+
+    const result = await triggerPreToolUseHooks(
+      "bash",
+      toolContext("bash", { command: "git add 111.txt" }),
+      settings,
+    );
+
+    assert.equal(result.blocked, true);
+    assert.equal(result.reason, "git add is disabled - use git add -p");
+  } finally {
+    script.cleanup();
+  }
+});
