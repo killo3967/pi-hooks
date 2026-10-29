@@ -10,7 +10,8 @@ export type HookModuleContext = {
   pi: ExtensionAPI;
   currentSettings: SettingsFile | undefined;
   firedSessionStartKeys: Set<string>;
-  pendingUserPromptContext?: string;
+  /** Contexts waiting to be attached to the next runs, in arrival order. */
+  pendingUserPromptContexts: string[];
   stopHookActive: boolean;
   getSessionId: (ctx: any) => string;
   notify: (ctx: any, msg: string, type: NotifyType) => void;
@@ -35,7 +36,7 @@ export function createHookContext(pi: ExtensionAPI): HookModuleContext {
     pi,
     currentSettings: undefined,
     firedSessionStartKeys: new Set<string>(),
-    pendingUserPromptContext: undefined,
+    pendingUserPromptContexts: [],
     stopHookActive: false,
     getSessionId: (ctx: any) =>
       ctx.sessionManager.getSessionFile() ?? "ephemeral",

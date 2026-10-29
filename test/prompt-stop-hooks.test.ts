@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { triggerUserPromptSubmitHooks } from "../src/hooks/prompt-hooks.ts";
+import {
+  registerPromptHooks,
+  triggerUserPromptSubmitHooks,
+} from "../src/hooks/prompt-hooks.ts";
 import { triggerStopHooks } from "../src/hooks/stop-hooks.ts";
 import type { HookExecutionContext } from "../src/types.ts";
 import { createHookScript } from "./support/hook-script.ts";
@@ -179,4 +182,73 @@ test("prompt and stop hooks are inert without settings", async () => {
     blocked: false,
   });
   assert.deepEqual(await triggerStopHooks(stopContext, undefined), { blocked: false });
+});
+
+function fakePi(): {
+  pi: never;
+  handlers: Map<string, (event: any, ctx: any) => Promise<any>>;
+} {
+  const handlers = new Map<string, (event: any, ctx: any) => Promise<any>>();
+  const pi = {
+    on: (name: string, handler: (event: any, ctx: any) => Promise<any>) => {
+      handlers.set(name, handler);
+      return () => {};
+    },
+  };
+  return { pi: pi as never, handlers };
+}
+
+const handlerCtx = {
+  cwd: process.cwd(),
+  sessionManager: { getSessionFile: () => "session.jsonl" },
+  ui: { notify: () => {} },
+};
+
+test("queued prompt contexts are consumed in order, one per run", async () => {
+  // Two prompts can arrive before a run starts (steering, follow-ups). A single
+  // pending slot meant the second overwrote the first and its context vanished.
+  const { pi, handlers } = fakePi();
+  const shared = {
+    currentSettings: undefined,
+    pendingUserPromptContexts: ["first", "second"],
+    stopHookActive: false,
+    getSessionId: () => "session.jsonl",
+    notify: () => {},
+    injectHiddenContext: () => {},
+  };
+  registerPromptHooks(pi, shared as never);
+
+  const firstRun = await handlers.get("before_agent_start")?.({}, handlerCtx);
+  const secondRun = await handlers.get("before_agent_start")?.({}, handlerCtx);
+  const thirdRun = await handlers.get("before_agent_start")?.({}, handlerCtx);
+
+  assert.equal(firstRun?.message.content, "first");
+  assert.equal(secondRun?.message.content, "second");
+  assert.equal(thirdRun, undefined);
+});
+
+test("a prompt arriving while another is pending keeps both contexts", async () => {
+  const script = createHookScript(`
+  out({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: "from-hook" } });`);
+  try {
+    const { pi, handlers } = fakePi();
+    const shared = {
+      currentSettings: settingsWith("UserPromptSubmit", {
+        type: "command",
+        command: script.command,
+      }),
+      pendingUserPromptContexts: ["earlier"],
+      stopHookActive: false,
+      getSessionId: () => "session.jsonl",
+      notify: () => {},
+      injectHiddenContext: () => {},
+    };
+    registerPromptHooks(pi, shared as never);
+
+    await handlers.get("input")?.({ text: "hola" }, handlerCtx);
+
+    assert.deepEqual(shared.pendingUserPromptContexts, ["earlier", "from-hook"]);
+  } finally {
+    script.cleanup();
+  }
 });

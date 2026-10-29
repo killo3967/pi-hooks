@@ -85,7 +85,6 @@ export function registerPromptHooks(
   shared: HookModuleContext,
 ) {
   pi.on("input", async (event, ctx) => {
-    shared.pendingUserPromptContext = undefined;
     shared.stopHookActive = false;
 
     const result = await triggerUserPromptSubmitHooks(
@@ -110,19 +109,23 @@ export function registerPromptHooks(
     }
 
     if (result.additionalContext) {
-      shared.pendingUserPromptContext = result.additionalContext;
+      // Contexts are consumed by before_agent_start in arrival order, so two
+      // prompts queued before a run keep both instead of the last one winning.
+      // The cap stops a context whose run never starts from piling up forever.
+      shared.pendingUserPromptContexts.push(result.additionalContext);
+      if (shared.pendingUserPromptContexts.length > 8) {
+        shared.pendingUserPromptContexts.shift();
+      }
     }
 
     return { action: "continue" } as const;
   });
 
   pi.on("before_agent_start", async (_event, _ctx) => {
-    if (!shared.pendingUserPromptContext) {
+    const additionalContext = shared.pendingUserPromptContexts.shift();
+    if (!additionalContext) {
       return;
     }
-
-    const additionalContext = shared.pendingUserPromptContext;
-    shared.pendingUserPromptContext = undefined;
 
     return {
       message: {
