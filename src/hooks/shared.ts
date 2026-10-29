@@ -219,6 +219,70 @@ export async function executeParsedHook(
   };
 }
 
+/**
+ * The parsed result of one executed hook, handed to the per-event decision.
+ */
+export type HookOutcome = {
+  hookResult: { stdout: string; stderr: string; exitCode: number };
+  plainStdout: string;
+  jsonOutput?: Record<string, unknown>;
+  commonOutput?: ReturnType<typeof extractCommonOutput>;
+};
+
+/** "stop" means the hook decided for the whole event (block, deny, stop). */
+export type HookOutcomeAction = "stop" | undefined;
+
+/**
+ * Runs every hook that matches an event and hands each parsed result to
+ * `onOutcome`.
+ *
+ * All six event families used to repeat this traversal: groups → matcher →
+ * hook → `if` → execute, plus the same error notification. The per-event
+ * decision logic stays in each trigger; only the walk lives here.
+ */
+export async function runHookGroups(options: {
+  eventName: HookEventName;
+  /** Undefined means the event has no matcher: Stop and UserPromptSubmit. */
+  matcherValue?: string;
+  context: HookExecutionContext;
+  settings: SettingsFile | undefined;
+  notify?: NotifyFn;
+  /** SessionEnd has no user matcher: Pi always reports `other`. */
+  defaultMatcher?: string;
+  onOutcome: (outcome: HookOutcome) => HookOutcomeAction | Promise<HookOutcomeAction>;
+}): Promise<void> {
+  const groups = getHookGroups(options.settings, options.eventName);
+
+  for (const group of groups) {
+    if (options.matcherValue !== undefined) {
+      const effectiveMatcher =
+        options.defaultMatcher !== undefined
+          ? (group.matcher ?? options.defaultMatcher)
+          : group.matcher;
+
+      if (!matcherMatches(effectiveMatcher, options.matcherValue)) continue;
+    }
+
+    for (const hook of group.hooks ?? []) {
+      if (hook.if && !hookIfMatches(options.context, hook.if)) continue;
+
+      let outcome: HookOutcome;
+      try {
+        const { hookResult, plainStdout, jsonOutput, commonOutput } =
+          await executeParsedHook(hook, options.context, options.eventName);
+        outcome = { hookResult, plainStdout, jsonOutput, commonOutput };
+      } catch (err) {
+        // Only the execution is guarded: a bug in the outcome handling is ours
+        // and should surface instead of being reported as a hook failure.
+        options.notify?.(`${options.eventName} hook error: ${String(err)}`, "error");
+        continue;
+      }
+
+      if ((await options.onOutcome(outcome)) === "stop") return;
+    }
+  }
+}
+
 export async function triggerSimpleHooks(
   eventName: HookEventName,
   matcherValue: string,
@@ -226,67 +290,58 @@ export async function triggerSimpleHooks(
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
 ): Promise<HookRunResult> {
-  const groups = getHookGroups(settings, eventName);
   const aggregatedResult: HookRunResult = {};
 
-  for (const group of groups) {
-    const effectiveMatcher =
-      eventName === "SessionEnd" ? (group.matcher ?? "other") : group.matcher;
+  await runHookGroups({
+    eventName,
+    matcherValue,
+    context,
+    settings,
+    notify,
+    defaultMatcher: eventName === "SessionEnd" ? "other" : undefined,
+    onOutcome: ({ hookResult, plainStdout, jsonOutput, commonOutput }) => {
+      const additionalContext = jsonOutput
+        ? getStringField(
+            commonOutput?.hookSpecificOutput?.additionalContext,
+            jsonOutput.additionalContext,
+          )
+        : undefined;
+      aggregatedResult.additionalContext = appendAdditionalContext(
+        aggregatedResult.additionalContext,
+        additionalContext,
+      );
 
-    if (!matcherMatches(effectiveMatcher, matcherValue)) continue;
-
-    for (const hook of group.hooks ?? []) {
-      if (hook.if && !hookIfMatches(context, hook.if)) continue;
-
-      try {
-        const { hookResult, plainStdout, jsonOutput, commonOutput } =
-          await executeParsedHook(hook, context, eventName);
-
-        const additionalContext = jsonOutput
-          ? getStringField(
-              commonOutput?.hookSpecificOutput?.additionalContext,
-              jsonOutput.additionalContext,
-            )
-          : undefined;
+      if (
+        eventName === "SessionStart" &&
+        hookResult.exitCode === 0 &&
+        !jsonOutput &&
+        plainStdout
+      ) {
         aggregatedResult.additionalContext = appendAdditionalContext(
           aggregatedResult.additionalContext,
-          additionalContext,
+          plainStdout,
         );
-
-        if (
-          eventName === "SessionStart" &&
-          hookResult.exitCode === 0 &&
-          !jsonOutput &&
-          plainStdout
-        ) {
-          aggregatedResult.additionalContext = appendAdditionalContext(
-            aggregatedResult.additionalContext,
-            plainStdout,
-          );
-        }
-
-        if (commonOutput?.systemMessage) {
-          notify?.(commonOutput.systemMessage, "warning");
-        }
-
-        if (hookResult.exitCode !== 0) {
-          notify?.(
-            `${eventName} hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
-            "error",
-          );
-        } else if (
-          plainStdout &&
-          eventName !== "SessionStart" &&
-          !jsonOutput &&
-          commonOutput?.suppressOutput !== true
-        ) {
-          notify?.(`${eventName} hook output: ${plainStdout}`, "info");
-        }
-      } catch (err) {
-        notify?.(`${eventName} hook error: ${String(err)}`, "error");
       }
-    }
-  }
+
+      if (commonOutput?.systemMessage) {
+        notify?.(commonOutput.systemMessage, "warning");
+      }
+
+      if (hookResult.exitCode !== 0) {
+        notify?.(
+          `${eventName} hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+          "error",
+        );
+      } else if (
+        plainStdout &&
+        eventName !== "SessionStart" &&
+        !jsonOutput &&
+        commonOutput?.suppressOutput !== true
+      ) {
+        notify?.(`${eventName} hook output: ${plainStdout}`, "info");
+      }
+    },
+  });
 
   return aggregatedResult;
 }

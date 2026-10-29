@@ -1,5 +1,4 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { getHookGroups } from "../config.ts";
 import { describeInjectedContext } from "../helpers.ts";
 import type { HookModuleContext } from "../hook-context.ts";
 import type {
@@ -8,75 +7,62 @@ import type {
   SettingsFile,
   UserPromptSubmitResult,
 } from "../types.ts";
-import {
-  appendAdditionalContext,
-  executeParsedHook,
-  getStringField,
-  hookIfMatches,
-} from "./shared.ts";
+import { appendAdditionalContext, getStringField, runHookGroups } from "./shared.ts";
 
 export async function triggerUserPromptSubmitHooks(
   context: HookExecutionContext,
   settings: SettingsFile | undefined,
   notify?: NotifyFn,
 ): Promise<UserPromptSubmitResult> {
-  const groups = getHookGroups(settings, "UserPromptSubmit");
   const result: UserPromptSubmitResult = { blocked: false };
 
-  for (const group of groups) {
-    for (const hook of group.hooks ?? []) {
-      if (hook.if && !hookIfMatches(context, hook.if)) continue;
+  await runHookGroups({
+    eventName: "UserPromptSubmit",
+    context,
+    settings,
+    notify,
+    onOutcome: ({ hookResult, plainStdout, jsonOutput, commonOutput }) => {
+      if (hookResult.exitCode === 0 && jsonOutput) {
+        const additionalContext = getStringField(
+          commonOutput?.hookSpecificOutput?.additionalContext,
+          jsonOutput.additionalContext,
+        );
 
-      try {
-        const { hookResult, plainStdout, jsonOutput, commonOutput } =
-          await executeParsedHook(hook, context, "UserPromptSubmit");
+        result.additionalContext = appendAdditionalContext(
+          result.additionalContext,
+          additionalContext,
+        );
 
-        if (hookResult.exitCode === 0 && jsonOutput) {
-          const additionalContext = getStringField(
-            commonOutput?.hookSpecificOutput?.additionalContext,
-            jsonOutput.additionalContext,
-          );
-
-          result.additionalContext = appendAdditionalContext(
-            result.additionalContext,
-            additionalContext,
-          );
-
-          if (commonOutput?.systemMessage) {
-            notify?.(commonOutput.systemMessage, "warning");
-          }
-
-          if (
-            jsonOutput.decision !== undefined &&
-            jsonOutput.decision !== "block"
-          ) {
-            notify?.(
-              `UserPromptSubmit ignored an invalid decision: "${String(jsonOutput.decision)}"`,
-              "warning",
-            );
-          }
-
-          if (jsonOutput.decision === "block") {
-            result.blocked = true;
-            result.reason =
-              getStringField(jsonOutput.reason) ?? "Blocked by a hook";
-            return result;
-          }
-        } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`UserPromptSubmit hook output (not JSON): ${plainStdout}`, "info");
+        if (commonOutput?.systemMessage) {
+          notify?.(commonOutput.systemMessage, "warning");
         }
 
-        if (hookResult.exitCode !== 0) {
+        if (jsonOutput.decision !== undefined && jsonOutput.decision !== "block") {
           notify?.(
-            `UserPromptSubmit hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
-            "error",
+            `UserPromptSubmit ignored an invalid decision: "${String(jsonOutput.decision)}"`,
+            "warning",
           );
         }
-      } catch (err) {
-        notify?.(`UserPromptSubmit hook error: ${String(err)}`, "error");
+
+        if (jsonOutput.decision === "block") {
+          result.blocked = true;
+          result.reason = getStringField(jsonOutput.reason) ?? "Blocked by a hook";
+          return "stop";
+        }
+      } else if (hookResult.exitCode === 0 && plainStdout) {
+        notify?.(`UserPromptSubmit hook output (not JSON): ${plainStdout}`, "info");
       }
-    }
-  }
+
+      if (hookResult.exitCode !== 0) {
+        notify?.(
+          `UserPromptSubmit hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+          "error",
+        );
+      }
+
+      return undefined;
+    },
+  });
 
   return result;
 }
