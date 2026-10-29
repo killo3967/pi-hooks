@@ -47,7 +47,7 @@ test("UserPromptSubmit defaults the block reason", async () => {
     );
 
     assert.equal(result.blocked, true);
-    assert.equal(result.reason, "Blocked by hook");
+    assert.equal(result.reason, "Blocked by a hook");
   } finally {
     script.cleanup();
   }
@@ -67,7 +67,7 @@ test("UserPromptSubmit ignores an unknown decision and warns", async () => {
     assert.equal(result.blocked, false);
     assert.equal(messages.length, 1);
     assert.equal(messages[0]?.[1], "warning");
-    assert.match(messages[0]?.[0] ?? "", /maybe/);
+    assert.match(messages[0]?.[0] ?? "", /ignored an invalid decision: "maybe"/);
   } finally {
     script.cleanup();
   }
@@ -134,7 +134,7 @@ test("Stop defaults the continuation reason", async () => {
     );
 
     assert.equal(result.blocked, true);
-    assert.equal(result.reason, "Continue requested by Stop hook");
+    assert.equal(result.reason, "Continuation requested by the Stop hook");
   } finally {
     script.cleanup();
   }

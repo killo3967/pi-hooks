@@ -42,6 +42,7 @@ test("PreToolUse denies the call through hookSpecificOutput", async () => {
       messages.map(([, type]) => type),
       ["warning"],
     );
+    assert.equal(messages[0]?.[0], "PreToolUse denied by hook: no bash");
   } finally {
     script.cleanup();
   }
@@ -73,7 +74,7 @@ test("PreToolUse defaults the deny reason when the hook omits it", async () => {
     );
 
     assert.equal(result.blocked, true);
-    assert.equal(result.reason, "Blocked by hook");
+    assert.equal(result.reason, "Blocked by a hook");
   } finally {
     script.cleanup();
   }
@@ -82,14 +83,18 @@ test("PreToolUse defaults the deny reason when the hook omits it", async () => {
 test("PreToolUse blocks on exit code 2 and uses stderr as the reason", async () => {
   const script = createHookScript(`  fail(2, "denied by script");`);
   try {
+    const { notify, messages } = recorder();
+
     const result = await triggerPreToolUseHooks(
       "Bash",
       bash,
       settingsWith("PreToolUse", { type: "command", command: script.command }),
+      notify,
     );
 
     assert.equal(result.blocked, true);
     assert.equal(result.reason, "denied by script");
+    assert.equal(messages[0]?.[0], "PreToolUse blocked (exit 2): denied by script");
   } finally {
     script.cleanup();
   }

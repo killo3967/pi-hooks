@@ -271,7 +271,7 @@ export async function triggerSimpleHooks(
 
         if (hookResult.exitCode !== 0) {
           notify?.(
-            `Hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `${eventName} hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         } else if (
@@ -280,10 +280,10 @@ export async function triggerSimpleHooks(
           !jsonOutput &&
           commonOutput?.suppressOutput !== true
         ) {
-          notify?.(`Hook output: ${plainStdout}`, "info");
+          notify?.(`${eventName} hook output: ${plainStdout}`, "info");
         }
       } catch (err) {
-        notify?.(`Hook error: ${String(err)}`, "error");
+        notify?.(`${eventName} hook error: ${String(err)}`, "error");
       }
     }
   }

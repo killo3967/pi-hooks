@@ -50,7 +50,7 @@ export async function triggerUserPromptSubmitHooks(
             jsonOutput.decision !== "block"
           ) {
             notify?.(
-              `UserPromptSubmit ignored invalid decision: ${String(jsonOutput.decision)}`,
+              `UserPromptSubmit ignored an invalid decision: "${String(jsonOutput.decision)}"`,
               "warning",
             );
           }
@@ -58,21 +58,21 @@ export async function triggerUserPromptSubmitHooks(
           if (jsonOutput.decision === "block") {
             result.blocked = true;
             result.reason =
-              getStringField(jsonOutput.reason) ?? "Blocked by hook";
+              getStringField(jsonOutput.reason) ?? "Blocked by a hook";
             return result;
           }
         } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`UserPromptSubmit output (not JSON): ${plainStdout}`, "info");
+          notify?.(`UserPromptSubmit hook output (not JSON): ${plainStdout}`, "info");
         }
 
         if (hookResult.exitCode !== 0) {
           notify?.(
-            `UserPromptSubmit failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `UserPromptSubmit hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         }
       } catch (err) {
-        notify?.(`UserPromptSubmit error: ${String(err)}`, "error");
+        notify?.(`UserPromptSubmit hook error: ${String(err)}`, "error");
       }
     }
   }
@@ -103,7 +103,7 @@ export function registerPromptHooks(
     if (result.blocked) {
       shared.notify(
         ctx,
-        `UserPromptSubmit blocked: ${result.reason ?? "Blocked by hook"}`,
+        `UserPromptSubmit blocked: ${result.reason ?? "Blocked by a hook"}`,
         "warning",
       );
       return { action: "handled" } as const;

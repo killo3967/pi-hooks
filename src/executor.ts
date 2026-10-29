@@ -181,7 +181,7 @@ function executeCommandHook(
       child.kill();
       finish({
         stdout,
-        stderr: `${stderr}\n[pi-hooks] Hook timed out`.trim(),
+        stderr: `${stderr}\n[pi-hooks] Hook timed out after ${timeoutMs} ms`.trim(),
         exitCode: 1,
       });
     }, timeoutMs);

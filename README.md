@@ -608,7 +608,7 @@ must not wedge your editor — but it means "my hook didn't block" is usually "m
 Check these in order:
 
 1. **Did the command run at all?** A hook that cannot start (missing binary, unexpected shell)
-   notifies `PreToolUse failed (exit N)` or `Hook error`. Test the command outside Pi first:
+   notifies `PreToolUse hook failed (exit N)` or `<Event> hook error`. Test the command outside Pi first:
 
    ```bash
    echo '{"hook_event_name":"PreToolUse","tool_name":"bash","tool_input":{"command":"git add x"}}' | <your command>
@@ -617,7 +617,7 @@ Check these in order:
    It has to print one JSON object and exit 0.
 
 2. **Is the output valid JSON?** Exiting 0 while printing anything else counts as "no decision" and
-   the tool runs; that case notifies `PreToolUse output (not JSON): …`.
+   the tool runs; that case notifies `PreToolUse hook output (not JSON): …`.
 
 3. **Does the hook apply at all?** `matcher` is a regex over the tool name and `if` filters per hook.
    If either does not match, the hook is skipped before anything runs.

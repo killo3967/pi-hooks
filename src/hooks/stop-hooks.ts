@@ -66,7 +66,7 @@ export async function triggerStopHooks(
             jsonOutput.decision !== "block"
           ) {
             notify?.(
-              `Stop ignored invalid decision: ${String(jsonOutput.decision)}`,
+              `Stop ignored an invalid decision: "${String(jsonOutput.decision)}"`,
               "warning",
             );
           }
@@ -75,21 +75,21 @@ export async function triggerStopHooks(
             result.blocked = true;
             result.reason =
               getStringField(jsonOutput.reason) ??
-              "Continue requested by Stop hook";
+              "Continuation requested by the Stop hook";
             return result;
           }
         } else if (hookResult.exitCode === 0 && plainStdout) {
-          notify?.(`Stop output (not JSON): ${plainStdout}`, "info");
+          notify?.(`Stop hook output (not JSON): ${plainStdout}`, "info");
         }
 
         if (hookResult.exitCode !== 0) {
           notify?.(
-            `Stop failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
+            `Stop hook failed (exit ${hookResult.exitCode}): ${hookResult.stderr}`,
             "error",
           );
         }
       } catch (err) {
-        notify?.(`Stop error: ${String(err)}`, "error");
+        notify?.(`Stop hook error: ${String(err)}`, "error");
       }
     }
   }
