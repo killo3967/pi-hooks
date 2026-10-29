@@ -1,21 +1,21 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { getHookGroups, matcherMatches } from "../config";
-import { extractErrorFromContent } from "../helpers";
-import type { HookModuleContext } from "../hook-context";
+import { getHookGroups, matcherMatches } from "../config.ts";
+import { extractErrorFromContent } from "../helpers.ts";
+import type { HookModuleContext } from "../hook-context.ts";
 import type {
   HookExecutionContext,
   NotifyFn,
   PostToolUseResult,
   PreToolUseResult,
   SettingsFile,
-} from "../types";
+} from "../types.ts";
 import {
   appendAdditionalContext,
   executeParsedHook,
   extractToolResultPatch,
   getStringField,
   hookIfMatches,
-} from "./shared";
+} from "./shared.ts";
 
 export async function triggerPreToolUseHooks(
   toolName: string,

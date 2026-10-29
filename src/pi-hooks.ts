@@ -1,10 +1,10 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { createHookContext } from "./hook-context";
-import { registerCompactHooks } from "./hooks/compact-hooks";
-import { registerPromptHooks } from "./hooks/prompt-hooks";
-import { registerSessionHooks } from "./hooks/session-hooks";
-import { registerStopHooks } from "./hooks/stop-hooks";
-import { registerToolHooks } from "./hooks/tool-hooks";
+import { createHookContext } from "./hook-context.ts";
+import { registerCompactHooks } from "./hooks/compact-hooks.ts";
+import { registerPromptHooks } from "./hooks/prompt-hooks.ts";
+import { registerSessionHooks } from "./hooks/session-hooks.ts";
+import { registerStopHooks } from "./hooks/stop-hooks.ts";
+import { registerToolHooks } from "./hooks/tool-hooks.ts";
 
 // ============================================================================
 // 扩展主入口

@@ -1,8 +1,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadSettings } from "./config";
-import { extractResponseFromContent } from "./helpers";
-import { triggerSessionHooks } from "./hooks/session-hooks";
-import type { HookMatcherValue, SettingsFile } from "./types";
+import { loadSettings } from "./config.ts";
+import { extractResponseFromContent } from "./helpers.ts";
+import { triggerSessionHooks } from "./hooks/session-hooks.ts";
+import type { HookMatcherValue, SettingsFile } from "./types.ts";
 
 export type NotifyType = "info" | "error" | "warning";
 

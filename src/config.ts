@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { HookEventName, HookGroup, HooksConfig, SettingsFile } from "./types";
+import type { HookEventName, HookGroup, HooksConfig, SettingsFile } from "./types.ts";
 
 // ============================================================================
 // 配置读取
@@ -52,7 +52,7 @@ export function readSettingsFile(settingsPath: string): SettingsFile | undefined
   }
 }
 
-function mergeHooks(
+export function mergeHooks(
   globalHooks: HooksConfig | undefined,
   projectHooks: HooksConfig | undefined,
 ): HooksConfig | undefined {

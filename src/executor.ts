@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { GLOBAL_SETTINGS_PATH, readSettingsFile } from "./config";
-import type { Hook, HookExecutionContext } from "./types";
+import { GLOBAL_SETTINGS_PATH, readSettingsFile } from "./config.ts";
+import type { Hook, HookExecutionContext } from "./types.ts";
 
 // ============================================================================
 // Hook 执行器

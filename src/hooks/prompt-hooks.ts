@@ -1,18 +1,18 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { getHookGroups } from "../config";
-import type { HookModuleContext } from "../hook-context";
+import { getHookGroups } from "../config.ts";
+import type { HookModuleContext } from "../hook-context.ts";
 import type {
   HookExecutionContext,
   NotifyFn,
   SettingsFile,
   UserPromptSubmitResult,
-} from "../types";
+} from "../types.ts";
 import {
   appendAdditionalContext,
   executeParsedHook,
   getStringField,
   hookIfMatches,
-} from "./shared";
+} from "./shared.ts";
 
 export async function triggerUserPromptSubmitHooks(
   context: HookExecutionContext,

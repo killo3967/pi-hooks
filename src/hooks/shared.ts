@@ -1,5 +1,5 @@
-import { getHookGroups, matcherMatches } from "../config";
-import { buildHookInput, executeHook } from "../executor";
+import { getHookGroups, matcherMatches } from "../config.ts";
+import { buildHookInput, executeHook } from "../executor.ts";
 import type {
   Hook,
   HookExecutionContext,
@@ -8,7 +8,7 @@ import type {
   NotifyFn,
   SettingsFile,
   ToolResultPatch,
-} from "../types";
+} from "../types.ts";
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -1,13 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { HookModuleContext } from "../hook-context";
+import type { HookModuleContext } from "../hook-context.ts";
 import type {
   HookExecutionContext,
   HookMatcherValue,
   HookRunResult,
   NotifyFn,
   SettingsFile,
-} from "../types";
-import { triggerSimpleHooks } from "./shared";
+} from "../types.ts";
+import { triggerSimpleHooks } from "./shared.ts";
 
 export async function triggerSessionHooks(
   eventName: "SessionStart" | "SessionEnd",

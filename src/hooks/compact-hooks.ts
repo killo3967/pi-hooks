@@ -1,12 +1,12 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { HookModuleContext } from "../hook-context";
+import type { HookModuleContext } from "../hook-context.ts";
 import type {
   HookExecutionContext,
   HookRunResult,
   NotifyFn,
   SettingsFile,
-} from "../types";
-import { triggerSimpleHooks } from "./shared";
+} from "../types.ts";
+import { triggerSimpleHooks } from "./shared.ts";
 
 async function triggerCompactHooks(
   eventName: "PreCompact" | "PostCompact",

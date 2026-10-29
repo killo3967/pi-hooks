@@ -1,19 +1,19 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { getHookGroups } from "../config";
-import { extractTextFromContent } from "../helpers";
-import type { HookModuleContext } from "../hook-context";
+import { getHookGroups } from "../config.ts";
+import { extractTextFromContent } from "../helpers.ts";
+import type { HookModuleContext } from "../hook-context.ts";
 import type {
   HookExecutionContext,
   NotifyFn,
   SettingsFile,
   StopResult,
-} from "../types";
+} from "../types.ts";
 import {
   appendAdditionalContext,
   executeParsedHook,
   getStringField,
   hookIfMatches,
-} from "./shared";
+} from "./shared.ts";
 
 function findLastAssistantMessageText(messages: unknown[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
