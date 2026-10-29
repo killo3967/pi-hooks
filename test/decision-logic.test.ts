@@ -46,7 +46,7 @@ function runnerReturning(
       stderr: out.stderr ?? "",
       exitCode: out.exitCode ?? 0,
     };
-  }) as HookRunner & { calls: number };
+  }) as unknown as HookRunner & { calls: number };
   runner.calls = 0;
   return runner;
 }
