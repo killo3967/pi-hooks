@@ -87,14 +87,14 @@ Notes:
 
 - `permissionDecision: "deny"` blocks the current tool call and returns `permissionDecisionReason` to the agent; it does **not** directly stop the entire current processing flow
 - `permissionDecision: "allow"` lets the tool run; if `updatedInput` is provided, the input is merged before execution
-- `permissionDecision: "ask"` is **not supported**. Pi has no per-call approval model: it "does not ask for approval before every tool call", on purpose, and security comes from limiting what the process can reach (see Pi's `docs/security.md`). Claude Code's third state therefore has no equivalent here: a hook that returns it is ignored, and the tool call proceeds as if no decision had been made. Use `deny` when you need a human to intervene, or write a Pi extension with `ctx.ui.confirm` if you want an actual prompt.
+- `permissionDecision: "ask"` is **not supported**. Pi has no per-call approval model: it "does not ask for approval before every tool call", on purpose, and security comes from limiting what the process can reach (see Pi's `docs/security.md`). That third state therefore has no equivalent here: a hook that returns it is ignored, and the tool call proceeds as if no decision had been made. Use `deny` when you need a human to intervene, or write a Pi extension with `ctx.ui.confirm` if you want an actual prompt.
 - `updatedInput` is merged into `event.input`, while unspecified fields keep their original values
 - `additionalContext` does not block execution; it is only injected as hidden context and does not normally create an extra UI message
-- To explicitly stop the current processing flow, use Claude Code's generic field `continue: false`
+- To explicitly stop the current processing flow, use the generic field `continue: false`
 
 ## PostToolUse: append context or patch tool results
 
-Claude Code-style output example:
+Compatible output example:
 
 ```json
 {
@@ -102,7 +102,7 @@ Claude Code-style output example:
   "reason": "Explanation for decision",
   "hookSpecificOutput": {
     "hookEventName": "PostToolUse",
-    "additionalContext": "Additional information for Claude"
+    "additionalContext": "Additional information for the agent"
   }
 }
 ```
@@ -133,7 +133,7 @@ Pi-specific direct result patching is also supported:
 }
 ```
 
-Claude Code generic output fields are also supported:
+Generic output fields are also supported:
 
 ```json
 {
@@ -145,13 +145,13 @@ Claude Code generic output fields are also supported:
 
 Notes:
 
-- `hookSpecificOutput.hookEventName` is recognized following Claude Code behavior
+- `hookSpecificOutput.hookEventName` is recognized as in the shared hook contract
 - `decision: "block"` does not roll back an already executed tool; instead, `reason` is appended to model context as feedback
-- `additionalContext` is injected into the current agent flow as hidden context, approximating Claude Code's “append context for Claude” behavior; it does not normally produce an extra UI message
+- `additionalContext` is injected into the current agent flow as hidden context, approximating the “append context for the agent” behavior; it does not normally produce an extra UI message
 - `systemMessage` is silent by default for tool-related events (`PreToolUse`, `PostToolUse`, `PostToolUseFailure`) and does not normally generate an extra UI message
 - `continue: false` stops current processing in tool events on a best-effort basis; this is different from `PreToolUse.permissionDecision: "deny"`, which only blocks the current tool and returns a reason to the agent
 - For `PostToolUse` and `PostToolUseFailure`, stop-processing behavior does not add an extra local warning by default; the hook's own returned message/result takes precedence
-- In addition to Claude Code-compatible fields, Pi-specific patching is still supported:
+- In addition to the compatible fields, Pi-specific patching is still supported:
   - top-level `content`, `details`, `isError`
   - `hookSpecificOutput.updatedToolResult`
   - `updatedMCPToolOutput` (for MCP tool output replacement)

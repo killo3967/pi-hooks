@@ -3,7 +3,7 @@
 > Part of the [pi-hooks documentation](../README.md). The `matcher` regex and the per-hook `if` condition.
 
 
-To stay aligned with Claude Code, `matcher` is a **single regex string**.
+To stay aligned with the shared hook contract, `matcher` is a **single regex string**.
 
 - Omitted `matcher` means match everything
 - `""` means match everything
@@ -80,7 +80,7 @@ Notes:
 ## `if` Conditions
 
 
-Following Claude Code's approach, `if` is configured on each individual hook handler and only works for tool events:
+Following the same approach, `if` is configured on each individual hook handler and only works for tool events:
 
 - `PreToolUse`
 - `PostToolUse`

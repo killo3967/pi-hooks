@@ -1,12 +1,15 @@
 <p align="center">
-  <img src="assets/logo/pi-hooks.svg" alt="pi-hooks" width="104" height="104">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo/pi-hooks-white.svg">
+    <img src="assets/logo/pi-hooks-black.svg" alt="pi-hooks" width="104" height="104">
+  </picture>
 </p>
 
 <h1 align="center">pi-hooks</h1>
 
-Claude Code-compatible command hooks for the Pi coding agent.
+Command hooks for the Pi coding agent.
 
-`pi-hooks` reads the `hooks` block you would write for Claude Code and runs those commands on Pi's
+`pi-hooks` reads the `hooks` block from your Pi settings and runs those commands on Pi's
 events: session start and end, compaction, tool calls and results, prompt submission, and the end of a
 turn. A hook receives the event as JSON on stdin and answers with an exit code or with JSON on stdout.
 

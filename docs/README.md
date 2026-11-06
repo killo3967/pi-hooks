@@ -30,5 +30,5 @@ you; jump to reference when you need an exact field.
 
 ## Explanation
 
-- [How it works](explanation/how-it-works.md) — Pi events mapped to Claude Code hooks, plus design notes.
+- [How it works](explanation/how-it-works.md) — Pi events mapped to the shared hook contract, plus design notes.
 - [Security](explanation/security.md) — what hooks can run, what they see, and why the extension is fail-open.

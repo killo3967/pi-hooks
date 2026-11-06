@@ -1,7 +1,7 @@
 {
   "name": "@killo3967/pi-hooks",
   "version": "0.1.1",
-  "description": "Claude Code-compatible command hooks for the Pi coding agent (maintained fork)",
+  "description": "Command hooks for the Pi coding agent (maintained fork)",
   "author": "killo3967",
   "type": "module",
   "keywords": [
@@ -10,9 +10,7 @@
     "pi-coding-agent",
     "extension",
     "hooks",
-    "command-hooks",
-    "claude-code",
-    "claude-code-hooks"
+    "command-hooks"
   ],
   "license": "MIT",
   "packageManager": "pnpm@12.16.1",

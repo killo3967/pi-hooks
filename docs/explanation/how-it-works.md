@@ -1,6 +1,6 @@
 # Current Support
 
-> Part of the [pi-hooks documentation](../README.md). How Pi events map to Claude Code hooks, and the design notes.
+> Part of the [pi-hooks documentation](../README.md). How Pi events map to the shared hook contract, and the design notes.
 
 
 - Only `type: "command"` is supported
@@ -25,7 +25,7 @@
 - `SessionStart.resume` → `session_start(reason="resume")`
 - `SessionStart.compact` → `session_compact`
 - `SessionEnd.other` → `session_shutdown`
-- `Stop` → `agent_end` (best-effort emulation of Claude Code's “after response completes” behavior)
+- `Stop` → `agent_end` (best-effort emulation of the “after response completes” behavior)
 - `PreCompact.manual` / `PreCompact.auto` → `session_before_compact`
 - `PostCompact.manual` / `PostCompact.auto` → `session_compact`
 
@@ -38,7 +38,8 @@ request did not fit) reasons, so a hook with `"matcher": "auto"` fires on both.
 - Hook commands run in the current session `cwd`
 - Global config and project config are merged by concatenating event arrays
 - `PostToolUse` and `PostToolUseFailure` support Pi result patching
-- Input/output aims to be Claude Code-compatible where possible; anything that cannot be mapped exactly is handled in a best-effort way using Pi's event model
+- Input/output keeps the shared hook contract intact where possible; anything that cannot be mapped exactly is handled in a best-effort way using Pi's event model
+- The contract did not start here: `pi-hooks` keeps it unchanged so that existing hook scripts keep working without edits
 - Requires `@earendil-works/pi-coding-agent` **>= 1.4.0** (declared as a peer dependency, and the version the sources are type-checked against)
 - Hidden context is injected through the `pi` instance captured when the extension loads; Pi invalidates a captured `pi` after a session replacement, and that path is a known limitation rather than a guarded error
 

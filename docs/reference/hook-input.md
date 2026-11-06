@@ -3,11 +3,11 @@
 > Part of the [pi-hooks documentation](../README.md). The JSON payload each hook receives on stdin.
 
 
-Input fields are designed to be as close as possible to Claude Code hooks:
+Input fields are designed to be as close as possible to the shared hook contract:
 
 - Common fields: `session_id`, `transcript_path`, `cwd`, `hook_event_name`
 - Event-specific fields such as `source`, `reason`, `tool_name`, `tool_input`, `tool_response`
-- **Pi-specific extra fields may also be included**, but they should not break Claude Code-style scripts
+- **Pi-specific extra fields may also be included**, but they should not break existing hook scripts
 
 ## SessionStart
 
@@ -71,7 +71,7 @@ Notes:
 - `Stop` does not support `matcher`; if configured, it is ignored
 - `stop_hook_active` indicates whether the current continuation was triggered by a previous `Stop` hook
 - `last_assistant_message` tries to extract the last assistant text content; if none exists, it is an empty string
-- When `decision: "block"` is returned, the extension best-effort simulates Claude Code's “prevent stopping and continue” behavior by injecting hidden context and starting another agent turn
+- When `decision: "block"` is returned, the extension best-effort simulates the “prevent stopping and continue” behavior by injecting hidden context and starting another agent turn
 
 ## PreToolUse
 
@@ -137,6 +137,6 @@ Notes:
 - `permission_mode` is not included
 - `tool_name` uses Pi's original event value without case conversion
 - `tool_input` comes from `tool_result.event.input`
-- `tool_response` is the Claude Code-style compatible tool result object
+- `tool_response` is the compatible tool result object
 - `tool_use_id` comes from `tool_result.event.toolCallId`
 - Failed tool results are routed to `PostToolUseFailure` instead of `PostToolUse`
