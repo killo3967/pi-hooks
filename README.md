@@ -1,4 +1,8 @@
-# pi-hooks
+<p align="center">
+  <img src="assets/logo/pi-hooks.svg" alt="pi-hooks" width="104" height="104">
+</p>
+
+<h1 align="center">pi-hooks</h1>
 
 Claude Code-compatible command hooks for the Pi coding agent.
 
